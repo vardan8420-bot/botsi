@@ -141,11 +141,11 @@ def main():
     
     # Инициализация AI разработчика (Этап 4)
     try:
-        code_generator = CodeGenerator(Config.OPENAI_API_KEY)
+        ai_code_generator = CodeGenerator(Config.OPENAI_API_KEY)
         print("✅ AI разработчик инициализирован")
     except Exception as e:
         print(f"⚠️ AI разработчик недоступен: {e}")
-        code_generator = None
+        ai_code_generator = None
     
     # Инициализация GitHub (Этап 4)
     try:
@@ -168,7 +168,7 @@ def main():
     application.bot_data['content_generator'] = content_generator
     application.bot_data['social_manager'] = social_manager
     application.bot_data['analytics'] = analytics
-    application.bot_data['code_generator'] = code_generator
+    application.bot_data['code_generator'] = ai_code_generator
     application.bot_data['github_manager'] = github_manager
     
     # Регистрация обработчиков команд (Этап 1)
@@ -199,7 +199,7 @@ def main():
         application.add_handler(CommandHandler("language_stats", language_stats_command))
     
     # Регистрация команд AI разработчика (Этап 4)
-    if code_generator:
+    if ai_code_generator:
         application.add_handler(CommandHandler("generate_code", generate_code_command))
         application.add_handler(CommandHandler("analyze_code", analyze_code_command))
         application.add_handler(CommandHandler("fix_code", fix_code_command))
