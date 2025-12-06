@@ -36,6 +36,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /generate_ad <ապրանք> | <լսարան> - Ստեղծել գովազդ
 /social_status - Հասանելի սոց․ ցանցեր
 
+📊 **Վերլուծություն:**
+/analytics - Գլոբալ վիճակագրություն
+/activity [օրեր] - Ակտիվություն
+/top_users [քանակ] - Ամենաակտիվ օգտատերեր
+/model_stats - AI մոդելների վիճակագրություն
+/cache_stats - Քեշի վիճակագրություն
+/export_data - Արտահանել ձեր տվյալները
+/language_stats - Լեզուների բաշխում
+
 💡 **Պարզապես գրեք ինձ - /start-ի կարիք չկա!**
 
 🎤 Կարող եք նաև ուղարկել ձայնային հաղորդագրություն։
@@ -55,6 +64,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /generate_ad <продукт> | <аудитория> - Создать рекламу
 /social_status - Доступные соцсети
 
+📊 **Аналитика:**
+/analytics - Глобальная статистика
+/activity [дни] - Активность за период
+/top_users [количество] - Топ активных пользователей
+/model_stats - Статистика AI моделей
+/cache_stats - Статистика кеша
+/export_data - Экспортировать ваши данные
+/language_stats - Распределение по языкам
+
 💡 **Просто напишите мне - /start не нужен!**
 
 🎤 Вы также можете отправить голосовое сообщение.
@@ -73,6 +91,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /generate_script <topic> - Create video script
 /generate_ad <product> | <audience> - Create ad copy
 /social_status - Available social platforms
+
+📊 **Analytics:**
+/analytics - Global statistics
+/activity [days] - Activity for period
+/top_users [count] - Top active users
+/model_stats - AI models statistics
+/cache_stats - Cache statistics
+/export_data - Export your data
+/language_stats - Language distribution
 
 💡 **Just write to me - no /start needed!**
 
