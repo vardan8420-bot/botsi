@@ -168,10 +168,50 @@ async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYP
         # Показываем распознанный текст
         await update.message.reply_text(f"🎤 {transcribed_text}")
         
-        # Обрабатываем как текстовое сообщение
-        # Создаем временный update с текстом
-        update.message.text = transcribed_text
-        await handle_text_message(update, context)
+        # Увеличиваем счетчик сообщений
+        db.increment_message_count(user_id)
+        
+        # Определяем язык
+        detected_lang = LanguageDetector.detect(transcribed_text)
+        if detected_lang in ['hy', 'ru', 'en']:
+            db.update_user_language(user_id, detected_lang)
+            language = detected_lang
+        
+        # Загружаем системный промпт
+        system_prompt = load_system_prompt(language)
+        
+        # Получаем историю
+        history = db.get_user_history(user_id, limit=config.MAX_CONTEXT_MESSAGES)
+        
+        # Получаем ответ от AI
+        response, model_used = await ai.get_response(
+            user_message=transcribed_text,
+            system_prompt=system_prompt,
+            history=history,
+            language=language
+        )
+        
+        if not response:
+            fallback_messages = {
+                'hy': 'Ներողություն, չկարողացա պատասխանել։',
+                'ru': 'Извините, не смог ответить.',
+                'en': 'Sorry, couldn\'t respond.'
+            }
+            response = fallback_messages.get(language, fallback_messages['en'])
+            model_used = 'error'
+        
+        # Отправляем ответ
+        await update.message.reply_text(response)
+        
+        # Сохраняем в историю
+        db.save_message(
+            telegram_id=user_id,
+            user_message=transcribed_text,
+            bot_response=response,
+            language=language,
+            model_used=model_used or 'unknown',
+            is_cached=False
+        )
         
     except Exception as e:
         print(f"❌ Ошибка обработки голоса: {e}")
