@@ -47,3 +47,36 @@ async def create_site_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         , parse_mode='Markdown', disable_web_page_preview=True)
     else:
         await update.message.reply_text(f"❌ Ошибка строительства: {result['error']}")
+
+
+async def audit_site_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /audit_site - проверить сайт на ошибки"""
+    auditor = context.bot_data.get('site_auditor')
+    
+    if not auditor:
+        await update.message.reply_text("⚠️ Модуль Аудитора не инициализирован")
+        return
+    
+    if not context.args:
+        await update.message.reply_text(
+            "🕵️‍♂️ **QA Аудит сайта**\n\n"
+            "Использование: `/audit_site <url>`\n\n"
+            "Пример:\n/audit_site https://example.com"
+        , parse_mode='Markdown')
+        return
+    
+    url = context.args[0]
+    if not url.startswith('http'):
+        url = 'https://' + url
+        
+    await update.message.reply_text(f"🕵️‍♂️ Сканирую сайт {url}... Ищу баги...")
+    
+    result = await auditor.audit_page(url)
+    
+    if result['success']:
+        await update.message.reply_text(
+            f"📋 **ОТЧЕТ ПО АУДИТУ:**\n\n"
+            f"{result['report']}"
+        , parse_mode='Markdown')
+    else:
+        await update.message.reply_text(f"❌ Ошибка аудита: {result['error']}")

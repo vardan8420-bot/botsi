@@ -30,6 +30,7 @@ from bot.services.social_media_real import SocialMediaManager as RealSocialMedia
 from bot.services.smm_marketing import SMMMarketingService
 from bot.services.mind_sync import MindSyncService
 from bot.services.project_architect import ProjectArchitectService
+from bot.services.site_auditor import SiteAuditorService
 
 # Handlers
 from bot.handlers.commands import (
@@ -95,7 +96,7 @@ from bot.handlers.smm_commands import (
     hashtags_command,
     competitor_command
 )
-from bot.handlers.web_commands import create_site_command
+from bot.handlers.web_commands import create_site_command, audit_site_command
 
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -170,6 +171,7 @@ def main():
     smm_marketing = SMMMarketingService(ai.client)
     mind_sync = MindSyncService(ai.client, memory)
     project_architect = ProjectArchitectService(ai.client, github_manager)
+    site_auditor = SiteAuditorService(ai.client)
     
     # Создание приложения
     application = ApplicationBuilder().token(Config.TELEGRAM_BOT_TOKEN).build()
@@ -191,6 +193,7 @@ def main():
     application.bot_data['smm_marketing'] = smm_marketing
     application.bot_data['mind_sync'] = mind_sync
     application.bot_data['project_architect'] = project_architect
+    application.bot_data['site_auditor'] = site_auditor
     
     # --- Регистрация обработчиков команд ---
     
@@ -253,6 +256,7 @@ def main():
     
     # Web Architect
     application.add_handler(CommandHandler("create_site", create_site_command))
+    application.add_handler(CommandHandler("audit_site", audit_site_command))
     
     # Обработчики сообщений
     application.add_handler(

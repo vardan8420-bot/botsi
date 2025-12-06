@@ -13,3 +13,4 @@ Pillow==10.1.0  # Обработка изображений
 requests==2.31.0  # HTTP запросы
 instagrapi==2.0.0  # Instagram API
 numpy<2.0.0  # Fix for ChromaDB compatibility
+beautifulsoup4==4.12.3 # HTML Parsing for Audit
