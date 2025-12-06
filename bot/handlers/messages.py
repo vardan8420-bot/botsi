@@ -78,6 +78,15 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Загружаем системный промпт с учетом режима
     system_prompt = get_system_prompt(language, mode)
     
+    # --- MIND SYNC: Адаптация под пользователя ---
+    mind_sync = context.bot_data.get('mind_sync')
+    if mind_sync:
+        adaptive_instruction = await mind_sync.get_adaptive_instruction(user_id)
+        if adaptive_instruction:
+            system_prompt += adaptive_instruction
+            print(f"🧠 Mind Sync: применена адаптация для {user_id}")
+    # ---------------------------------------------
+    
     # Получаем историю
     history = db.get_user_history(user_id, limit=config.MAX_CONTEXT_MESSAGES)
     
@@ -115,6 +124,19 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         model_used=model_used or 'unknown',
         is_cached=False
     )
+    
+    # --- MIND SYNC: Анализ профиля ---
+    if mind_sync and user.message_count % 5 == 0:
+        print(f"🧠 Mind Sync: Запуск анализа для {user_id}...")
+        # Получаем свежую историю (уже с текущим сообщением)
+        fresh_history = db.get_user_history(user_id, limit=20)
+        # Запускаем анализ (не блокируя ответ пользователю, если бы это было в фоне, но тут await)
+        # В идеале это в create_task, но для надежности сейчас так
+        try:
+            await mind_sync.analyze_and_update_profile(user_id, fresh_history)
+        except Exception as e:
+            print(f"⚠️ Ошибка Mind Sync анализа: {e}")
+    # ---------------------------------
     
     # Периодическая очистка кеша
     if user.message_count % 10 == 0:
@@ -187,6 +209,14 @@ async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYP
         # Загружаем системный промпт с учетом режима
         system_prompt = get_system_prompt(language, mode)
         
+        # --- MIND SYNC: Адаптация под пользователя ---
+        mind_sync = context.bot_data.get('mind_sync')
+        if mind_sync:
+            adaptive_instruction = await mind_sync.get_adaptive_instruction(user_id)
+            if adaptive_instruction:
+                system_prompt += adaptive_instruction
+        # ---------------------------------------------
+        
         # Получаем историю
         history = db.get_user_history(user_id, limit=config.MAX_CONTEXT_MESSAGES)
         
@@ -219,6 +249,15 @@ async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYP
             model_used=model_used or 'unknown',
             is_cached=False
         )
+        
+        # --- MIND SYNC: Анализ профиля ---
+        if mind_sync and user.message_count % 5 == 0:
+            fresh_history = db.get_user_history(user_id, limit=20)
+            try:
+                await mind_sync.analyze_and_update_profile(user_id, fresh_history)
+            except Exception as e:
+                print(f"⚠️ Ошибка Mind Sync анализа (voice): {e}")
+        # ---------------------------------
         
     except Exception as e:
         print(f"❌ Ошибка обработки голоса: {e}")

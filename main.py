@@ -28,6 +28,7 @@ from bot.services.memory import MemoryService
 from bot.services.image_generation import ImageGenerationService
 from bot.services.social_media_real import SocialMediaManager as RealSocialMediaManager
 from bot.services.smm_marketing import SMMMarketingService
+from bot.services.mind_sync import MindSyncService
 
 # Handlers
 from bot.handlers.commands import (
@@ -165,6 +166,7 @@ def main():
     )
     
     smm_marketing = SMMMarketingService(ai.client)
+    mind_sync = MindSyncService(ai.client, memory)
     
     # Создание приложения
     application = ApplicationBuilder().token(Config.TELEGRAM_BOT_TOKEN).build()
@@ -184,6 +186,7 @@ def main():
     application.bot_data['image_generation'] = image_gen
     application.bot_data['social_media_real'] = social_media_real
     application.bot_data['smm_marketing'] = smm_marketing
+    application.bot_data['mind_sync'] = mind_sync
     
     # --- Регистрация обработчиков команд ---
     
