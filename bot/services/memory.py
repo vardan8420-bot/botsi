@@ -24,6 +24,13 @@ class MemoryService:
             try:
                 import chromadb
                 from chromadb.config import Settings
+                from chromadb.utils import embedding_functions
+                
+                # Используем OpenAI для эмбеддингов (чтобы не качать модели локально)
+                openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+                    api_key=self.openai_api_key,
+                    model_name="text-embedding-3-small"
+                )
                 
                 # Инициализация ChromaDB
                 self.client = chromadb.Client(Settings(
@@ -31,13 +38,14 @@ class MemoryService:
                     allow_reset=True
                 ))
                 
-                # Создаем коллекцию для памяти
+                # Создаем коллекцию с явной функцией эмбеддинга
                 self.collection = self.client.get_or_create_collection(
                     name="user_memories",
+                    embedding_function=openai_ef,
                     metadata={"description": "Long-term user memories"}
                 )
                 
-                print("✅ Долгосрочная память инициализирована (ChromaDB)")
+                print("✅ Долгосрочная память инициализирована (ChromaDB + OpenAI)")
             except Exception as e:
                 print(f"⚠️ Ошибка инициализации памяти: {e}")
                 self.is_available = False
