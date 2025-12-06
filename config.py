@@ -29,7 +29,8 @@ class Config:
     CACHE_TTL = int(os.getenv('CACHE_TTL', '3600'))
     
     # Context
-    MAX_CONTEXT_MESSAGES = int(os.getenv('MAX_CONTEXT_MESSAGES', '5'))
+    MAX_CONTEXT_MESSAGES = int(os.getenv('MAX_CONTEXT_MESSAGES', '20'))  # Увеличено с 5 до 20
+
     
     # Optional APIs (с fallback)
     ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')
@@ -39,6 +40,7 @@ class Config:
     TIKTOK_SESSION_ID = os.getenv('TIKTOK_SESSION_ID')
     FACEBOOK_ACCESS_TOKEN = os.getenv('FACEBOOK_ACCESS_TOKEN')
     GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+    TAVILY_API_KEY = os.getenv('TAVILY_API_KEY')  # Web Search
     
     @classmethod
     def validate(cls):

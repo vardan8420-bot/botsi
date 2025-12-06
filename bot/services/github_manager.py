@@ -1,12 +1,12 @@
 """
-GitHub интеграция (заглушка для будущей реализации)
-Требует: PyGithub (добавить в requirements когда будет GitHub token)
+GitHub интеграция с реальным API
 """
 from typing import Optional, Dict, List
+from github import Github, GithubException
 
 
 class GitHubManager:
-    """Менеджер GitHub (заглушка)"""
+    """Менеджер GitHub с реальной интеграцией"""
     
     def __init__(self, token: Optional[str] = None):
         """
@@ -16,12 +16,91 @@ class GitHubManager:
             token: GitHub personal access token
         """
         self.token = token
-        self.is_available = token is not None
+        self.github = None
+        self.user = None
         
-        if self.is_available:
-            print("⚠️ GitHub менеджер создан (заглушка)")
+        if token:
+            try:
+                self.github = Github(token)
+                self.user = self.github.get_user()
+                print(f"✅ GitHub подключен: @{self.user.login}")
+            except Exception as e:
+                print(f"⚠️ Ошибка подключения к GitHub: {e}")
+                self.github = None
         else:
             print("⚠️ GitHub token не найден")
+    
+    def is_configured(self) -> bool:
+        """Проверить настроен ли GitHub"""
+        return self.github is not None
+    
+    async def get_user_info(self) -> Dict:
+        """
+        Получить информацию о пользователе
+        
+        Returns:
+            Информация о пользователе GitHub
+        """
+        if not self.is_configured():
+            return {
+                'success': False,
+                'error': 'GitHub не настроен. Добавьте GITHUB_TOKEN.'
+            }
+        
+        try:
+            return {
+                'success': True,
+                'username': self.user.login,
+                'name': self.user.name or self.user.login,
+                'public_repos': self.user.public_repos,
+                'followers': self.user.followers,
+                'following': self.user.following
+            }
+        except GithubException as e:
+            return {
+                'success': False,
+                'error': f'Ошибка GitHub API: {e.data.get("message", str(e))}'
+            }
+    
+    async def list_repositories(self, limit: int = 10) -> Dict:
+        """
+        Список репозиториев пользователя
+        
+        Args:
+            limit: Максимальное количество репозиториев
+            
+        Returns:
+            Список репозиториев
+        """
+        if not self.is_configured():
+            return {
+                'success': False,
+                'error': 'GitHub не настроен'
+            }
+        
+        try:
+            repos = []
+            for repo in self.user.get_repos()[:limit]:
+                repos.append({
+                    'name': repo.name,
+                    'full_name': repo.full_name,
+                    'description': repo.description or 'Нет описания',
+                    'private': repo.private,
+                    'stars': repo.stargazers_count,
+                    'forks': repo.forks_count,
+                    'url': repo.html_url
+                })
+            
+            return {
+                'success': True,
+                'repositories': repos,
+                'count': len(repos)
+            }
+        except GithubException as e:
+            return {
+                'success': False,
+                'error': f'Ошибка: {e.data.get("message", str(e))}'
+            }
     
     async def create_repository(
         self,
@@ -40,17 +119,31 @@ class GitHubManager:
         Returns:
             Информация о репозитории
         """
-        if not self.is_available:
+        if not self.is_configured():
             return {
                 'success': False,
-                'error': 'GitHub token не настроен. Добавьте GITHUB_TOKEN в переменные окружения.'
+                'error': 'GitHub не настроен'
             }
         
-        # TODO: Реализовать когда будет token
-        raise NotImplementedError(
-            "GitHub API не реализован. "
-            "Установите PyGithub и добавьте реализацию."
-        )
+        try:
+            repo = self.user.create_repo(
+                name=name,
+                description=description,
+                private=private,
+                auto_init=True  # Создать с README
+            )
+            
+            return {
+                'success': True,
+                'name': repo.name,
+                'url': repo.html_url,
+                'message': f'Репозиторий {repo.full_name} создан!'
+            }
+        except GithubException as e:
+            return {
+                'success': False,
+                'error': f'Ошибка: {e.data.get("message", str(e))}'
+            }
     
     async def create_file(
         self,
@@ -63,7 +156,7 @@ class GitHubManager:
         Создание файла в репозитории
         
         Args:
-            repo_name: Название репозитория
+            repo_name: Название репозитория (username/repo)
             file_path: Путь к файлу
             content: Содержимое файла
             commit_message: Сообщение коммита
@@ -71,45 +164,68 @@ class GitHubManager:
         Returns:
             Результат операции
         """
-        if not self.is_available:
+        if not self.is_configured():
             return {
                 'success': False,
-                'error': 'GitHub token не настроен'
+                'error': 'GitHub не настроен'
             }
         
-        # TODO: Реализовать когда будет token
-        raise NotImplementedError("GitHub API не реализован")
+        try:
+            repo = self.github.get_repo(repo_name)
+            result = repo.create_file(
+                path=file_path,
+                message=commit_message,
+                content=content
+            )
+            
+            return {
+                'success': True,
+                'file': file_path,
+                'commit': result['commit'].sha[:7],
+                'url': result['content'].html_url,
+                'message': f'Файл {file_path} создан!'
+            }
+        except GithubException as e:
+            return {
+                'success': False,
+                'error': f'Ошибка: {e.data.get("message", str(e))}'
+            }
     
-    async def create_pull_request(
-        self,
-        repo_name: str,
-        title: str,
-        body: str,
-        head: str,
-        base: str = 'main'
-    ) -> Dict:
+    async def get_repository_info(self, repo_name: str) -> Dict:
         """
-        Создание Pull Request
+        Информация о репозитории
         
         Args:
-            repo_name: Название репозитория
-            title: Заголовок PR
-            body: Описание PR
-            head: Ветка с изменениями
-            base: Базовая ветка
+            repo_name: Название репозитория (username/repo)
             
         Returns:
-            Информация о PR
+            Информация о репозитории
         """
-        if not self.is_available:
+        if not self.is_configured():
             return {
                 'success': False,
-                'error': 'GitHub token не настроен'
+                'error': 'GitHub не настроен'
             }
         
-        # TODO: Реализовать когда будет token
-        raise NotImplementedError("GitHub API не реализован")
-    
-    def is_configured(self) -> bool:
-        """Проверить настроен ли GitHub"""
-        return self.is_available
+        try:
+            repo = self.github.get_repo(repo_name)
+            
+            return {
+                'success': True,
+                'name': repo.name,
+                'full_name': repo.full_name,
+                'description': repo.description or 'Нет описания',
+                'private': repo.private,
+                'stars': repo.stargazers_count,
+                'forks': repo.forks_count,
+                'watchers': repo.watchers_count,
+                'language': repo.language,
+                'url': repo.html_url,
+                'created_at': repo.created_at.strftime('%Y-%m-%d'),
+                'updated_at': repo.updated_at.strftime('%Y-%m-%d')
+            }
+        except GithubException as e:
+            return {
+                'success': False,
+                'error': f'Ошибка: {e.data.get("message", str(e))}'
+            }

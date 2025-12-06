@@ -85,7 +85,7 @@ class AIHandler:
             
             # Добавление истории
             if history:
-                for msg in history[-5:]:  # Последние 5 сообщений
+                for msg in history:  # Использовать всю переданную историю
                     messages.append({"role": "user", "content": msg['user']})
                     messages.append({"role": "assistant", "content": msg['bot']})
             

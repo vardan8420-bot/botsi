@@ -6,6 +6,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.language import LanguageDetector, TranslitConverter
+from bot.prompts import get_system_prompt, ModeDetector
 
 
 async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -71,8 +72,11 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         return
     
-    # Загружаем системный промпт
-    system_prompt = load_system_prompt(language)
+    # Определяем режим работы по сообщению
+    mode = ModeDetector.detect_mode(user_message, language)
+    
+    # Загружаем системный промпт с учетом режима
+    system_prompt = get_system_prompt(language, mode)
     
     # Получаем историю
     history = db.get_user_history(user_id, limit=config.MAX_CONTEXT_MESSAGES)
@@ -177,8 +181,11 @@ async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYP
             db.update_user_language(user_id, detected_lang)
             language = detected_lang
         
-        # Загружаем системный промпт
-        system_prompt = load_system_prompt(language)
+        # Определяем режим работы по транскрибированному тексту
+        mode = ModeDetector.detect_mode(transcribed_text, language)
+        
+        # Загружаем системный промпт с учетом режима
+        system_prompt = get_system_prompt(language, mode)
         
         # Получаем историю
         history = db.get_user_history(user_id, limit=config.MAX_CONTEXT_MESSAGES)

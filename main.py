@@ -18,10 +18,18 @@ from config import Config
 from database import DatabaseRepository
 from bot.ai_handler import AIHandler
 from bot.services.content_generator import ContentGenerator
-from bot.services.social_media_manager import SocialMediaManager
 from bot.services.analytics import AnalyticsService
 from bot.services.code_generator import CodeGenerator
 from bot.services.github_manager import GitHubManager
+
+# New Services
+from bot.services.web_search import WebSearchService
+from bot.services.memory import MemoryService
+from bot.services.image_generation import ImageGenerationService
+from bot.services.social_media_real import SocialMediaManager as RealSocialMediaManager
+from bot.services.smm_marketing import SMMMarketingService
+
+# Handlers
 from bot.handlers.commands import (
     help_command,
     language_command,
@@ -56,6 +64,34 @@ from bot.handlers.code_commands import (
 from bot.handlers.messages import (
     handle_text_message,
     handle_voice_message
+)
+
+# New Handlers
+from bot.handlers.advanced_commands import (
+    search_command,
+    remember_command,
+    recall_command,
+    forget_command,
+    image_command
+)
+from bot.handlers.github_commands import (
+    github_repos_command,
+    github_create_repo_command,
+    github_create_file_command,
+    github_info_command
+)
+from bot.handlers.social_commands import (
+    post_instagram_command,
+    post_facebook_command,
+    social_status_real_command
+)
+from bot.handlers.smm_commands import (
+    smm_plan_command,
+    target_audience_command,
+    sales_funnel_command,
+    copywriting_command,
+    hashtags_command,
+    competitor_command
 )
 
 
@@ -111,52 +147,24 @@ def main():
         print(f"❌ Ошибка инициализации AI: {e}")
         sys.exit(1)
     
-    # Инициализация генератора контента (Этап 2)
-    try:
-        content_generator = ContentGenerator(Config.OPENAI_API_KEY)
-        print("✅ Генератор контента инициализирован")
-    except Exception as e:
-        print(f"⚠️ Генератор контента недоступен: {e}")
-        content_generator = None
+    # Инициализация сервисов (Этапы 2-4)
+    content_generator = ContentGenerator(Config.OPENAI_API_KEY)
+    analytics = AnalyticsService(db)
+    ai_code_generator = CodeGenerator(Config.OPENAI_API_KEY)
+    github_manager = GitHubManager(Config.GITHUB_TOKEN)
     
-    # Инициализация менеджера соцсетей (Этап 2)
-    try:
-        social_manager = SocialMediaManager(Config)
-        available_platforms = social_manager.get_available_platforms()
-        if available_platforms:
-            print(f"✅ Соцсети: {', '.join(available_platforms)}")
-        else:
-            print("⚠️ Соцсети: нет доступных платформ (добавьте API ключи)")
-    except Exception as e:
-        print(f"⚠️ Менеджер соцсетей недоступен: {e}")
-        social_manager = None
+    # Инициализация НОВЫХ сервисов (Этап 5+)
+    web_search = WebSearchService(Config.TAVILY_API_KEY)
+    memory = MemoryService(Config.OPENAI_API_KEY)
+    image_gen = ImageGenerationService(Config.OPENAI_API_KEY)
     
-    # Инициализация аналитики (Этап 3)
-    try:
-        analytics = AnalyticsService(db)
-        print("✅ Аналитика инициализирована")
-    except Exception as e:
-        print(f"⚠️ Аналитика недоступна: {e}")
-        analytics = None
+    social_media_real = RealSocialMediaManager(
+        instagram_username=Config.INSTAGRAM_USERNAME,
+        instagram_password=Config.INSTAGRAM_PASSWORD,
+        facebook_token=Config.FACEBOOK_ACCESS_TOKEN
+    )
     
-    # Инициализация AI разработчика (Этап 4)
-    try:
-        ai_code_generator = CodeGenerator(Config.OPENAI_API_KEY)
-        print("✅ AI разработчик инициализирован")
-    except Exception as e:
-        print(f"⚠️ AI разработчик недоступен: {e}")
-        ai_code_generator = None
-    
-    # Инициализация GitHub (Этап 4)
-    try:
-        github_manager = GitHubManager(Config.GITHUB_TOKEN)
-        if github_manager.is_configured():
-            print("✅ GitHub интеграция настроена")
-        else:
-            print("⚠️ GitHub: токен не найден (добавьте GITHUB_TOKEN)")
-    except Exception as e:
-        print(f"⚠️ GitHub менеджер недоступен: {e}")
-        github_manager = None
+    smm_marketing = SMMMarketingService(ai.client)
     
     # Создание приложения
     application = ApplicationBuilder().token(Config.TELEGRAM_BOT_TOKEN).build()
@@ -166,51 +174,77 @@ def main():
     application.bot_data['ai'] = ai
     application.bot_data['config'] = Config
     application.bot_data['content_generator'] = content_generator
-    application.bot_data['social_manager'] = social_manager
     application.bot_data['analytics'] = analytics
     application.bot_data['code_generator'] = ai_code_generator
     application.bot_data['github_manager'] = github_manager
     
-    # Регистрация обработчиков команд (Этап 1)
+    # Новые сервисы
+    application.bot_data['web_search'] = web_search
+    application.bot_data['memory'] = memory
+    application.bot_data['image_generation'] = image_gen
+    application.bot_data['social_media_real'] = social_media_real
+    application.bot_data['smm_marketing'] = smm_marketing
+    
+    # --- Регистрация обработчиков команд ---
+    
+    # Базовые
     application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("start", help_command))  # /start = /help
+    application.add_handler(CommandHandler("start", help_command))
     application.add_handler(CommandHandler("language", language_command))
     application.add_handler(CommandHandler("stats", stats_command))
     application.add_handler(CommandHandler("reset", reset_command))
     
-    # Регистрация команд генерации контента (Этап 2)
-    if content_generator:
-        application.add_handler(CommandHandler("generate_blog", generate_blog_command))
-        application.add_handler(CommandHandler("generate_post", generate_post_command))
-        application.add_handler(CommandHandler("generate_script", generate_script_command))
-        application.add_handler(CommandHandler("generate_ad", generate_ad_command))
+    # Контент
+    application.add_handler(CommandHandler("generate_blog", generate_blog_command))
+    application.add_handler(CommandHandler("generate_post", generate_post_command))
+    application.add_handler(CommandHandler("generate_script", generate_script_command))
+    application.add_handler(CommandHandler("generate_ad", generate_ad_command))
     
-    if social_manager:
-        application.add_handler(CommandHandler("social_status", social_status_command))
+    # Аналитика
+    application.add_handler(CommandHandler("analytics", analytics_command))
+    application.add_handler(CommandHandler("activity", activity_command))
+    application.add_handler(CommandHandler("top_users", top_users_command))
+    application.add_handler(CommandHandler("model_stats", model_stats_command))
+    application.add_handler(CommandHandler("cache_stats", cache_stats_command))
+    application.add_handler(CommandHandler("export_data", export_data_command))
+    application.add_handler(CommandHandler("language_stats", language_stats_command))
     
-    # Регистрация команд аналитики (Этап 3)
-    if analytics:
-        application.add_handler(CommandHandler("analytics", analytics_command))
-        application.add_handler(CommandHandler("activity", activity_command))
-        application.add_handler(CommandHandler("top_users", top_users_command))
-        application.add_handler(CommandHandler("model_stats", model_stats_command))
-        application.add_handler(CommandHandler("cache_stats", cache_stats_command))
-        application.add_handler(CommandHandler("export_data", export_data_command))
-        application.add_handler(CommandHandler("language_stats", language_stats_command))
+    # Код & GitHub (старый и новый)
+    application.add_handler(CommandHandler("generate_code", generate_code_command))
+    application.add_handler(CommandHandler("analyze_code", analyze_code_command))
+    application.add_handler(CommandHandler("fix_code", fix_code_command))
+    application.add_handler(CommandHandler("explain_code", explain_code_command))
+    application.add_handler(CommandHandler("refactor_code", refactor_code_command))
+    application.add_handler(CommandHandler("generate_tests", generate_tests_command))
+    application.add_handler(CommandHandler("github_status", github_status_command))
     
-    # Регистрация команд AI разработчика (Этап 4)
-    if ai_code_generator:
-        application.add_handler(CommandHandler("generate_code", generate_code_command))
-        application.add_handler(CommandHandler("analyze_code", analyze_code_command))
-        application.add_handler(CommandHandler("fix_code", fix_code_command))
-        application.add_handler(CommandHandler("explain_code", explain_code_command))
-        application.add_handler(CommandHandler("refactor_code", refactor_code_command))
-        application.add_handler(CommandHandler("generate_tests", generate_tests_command))
+    # GitHub (Advanced)
+    application.add_handler(CommandHandler("github_repos", github_repos_command))
+    application.add_handler(CommandHandler("github_create_repo", github_create_repo_command))
+    application.add_handler(CommandHandler("github_create_file", github_create_file_command))
+    application.add_handler(CommandHandler("github_info", github_info_command))
     
-    if github_manager:
-        application.add_handler(CommandHandler("github_status", github_status_command))
+    # Поиск & Память & Изображения
+    application.add_handler(CommandHandler("search", search_command))
+    application.add_handler(CommandHandler("remember", remember_command))
+    application.add_handler(CommandHandler("recall", recall_command))
+    application.add_handler(CommandHandler("forget", forget_command))
+    application.add_handler(CommandHandler("image", image_command))
     
-    # Регистрация обработчиков сообщений
+    # Соцсети (Real)
+    application.add_handler(CommandHandler("post_instagram", post_instagram_command))
+    application.add_handler(CommandHandler("post_facebook", post_facebook_command))
+    application.add_handler(CommandHandler("social_status", social_status_real_command))
+    
+    # SMM & Маркетинг
+    application.add_handler(CommandHandler("smm_plan", smm_plan_command))
+    application.add_handler(CommandHandler("target_audience", target_audience_command))
+    application.add_handler(CommandHandler("sales_funnel", sales_funnel_command))
+    application.add_handler(CommandHandler("copywriting", copywriting_command))
+    application.add_handler(CommandHandler("hashtags", hashtags_command))
+    application.add_handler(CommandHandler("competitor", competitor_command))
+    
+    # Обработчики сообщений
     application.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message)
     )
