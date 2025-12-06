@@ -20,6 +20,8 @@ from bot.ai_handler import AIHandler
 from bot.services.content_generator import ContentGenerator
 from bot.services.social_media_manager import SocialMediaManager
 from bot.services.analytics import AnalyticsService
+from bot.services.code_generator import CodeGenerator
+from bot.services.github_manager import GitHubManager
 from bot.handlers.commands import (
     help_command,
     language_command,
@@ -41,6 +43,15 @@ from bot.handlers.analytics_commands import (
     cache_stats_command,
     export_data_command,
     language_stats_command
+)
+from bot.handlers.code_commands import (
+    generate_code_command,
+    analyze_code_command,
+    fix_code_command,
+    explain_code_command,
+    refactor_code_command,
+    generate_tests_command,
+    github_status_command
 )
 from bot.handlers.messages import (
     handle_text_message,
@@ -128,6 +139,25 @@ def main():
         print(f"⚠️ Аналитика недоступна: {e}")
         analytics = None
     
+    # Инициализация AI разработчика (Этап 4)
+    try:
+        code_generator = CodeGenerator(Config.OPENAI_API_KEY)
+        print("✅ AI разработчик инициализирован")
+    except Exception as e:
+        print(f"⚠️ AI разработчик недоступен: {e}")
+        code_generator = None
+    
+    # Инициализация GitHub (Этап 4)
+    try:
+        github_manager = GitHubManager(Config.GITHUB_TOKEN)
+        if github_manager.is_configured():
+            print("✅ GitHub интеграция настроена")
+        else:
+            print("⚠️ GitHub: токен не найден (добавьте GITHUB_TOKEN)")
+    except Exception as e:
+        print(f"⚠️ GitHub менеджер недоступен: {e}")
+        github_manager = None
+    
     # Создание приложения
     application = ApplicationBuilder().token(Config.TELEGRAM_BOT_TOKEN).build()
     
@@ -138,6 +168,8 @@ def main():
     application.bot_data['content_generator'] = content_generator
     application.bot_data['social_manager'] = social_manager
     application.bot_data['analytics'] = analytics
+    application.bot_data['code_generator'] = code_generator
+    application.bot_data['github_manager'] = github_manager
     
     # Регистрация обработчиков команд (Этап 1)
     application.add_handler(CommandHandler("help", help_command))
@@ -165,6 +197,18 @@ def main():
         application.add_handler(CommandHandler("cache_stats", cache_stats_command))
         application.add_handler(CommandHandler("export_data", export_data_command))
         application.add_handler(CommandHandler("language_stats", language_stats_command))
+    
+    # Регистрация команд AI разработчика (Этап 4)
+    if code_generator:
+        application.add_handler(CommandHandler("generate_code", generate_code_command))
+        application.add_handler(CommandHandler("analyze_code", analyze_code_command))
+        application.add_handler(CommandHandler("fix_code", fix_code_command))
+        application.add_handler(CommandHandler("explain_code", explain_code_command))
+        application.add_handler(CommandHandler("refactor_code", refactor_code_command))
+        application.add_handler(CommandHandler("generate_tests", generate_tests_command))
+    
+    if github_manager:
+        application.add_handler(CommandHandler("github_status", github_status_command))
     
     # Регистрация обработчиков сообщений
     application.add_handler(

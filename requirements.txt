@@ -1,8 +1,6 @@
-# Core dependencies - Этап 1
+# Core dependencies
 python-telegram-bot==21.10
 openai==1.59.5
 python-dotenv==1.0.1
-
-# Database
 sqlalchemy==2.0.36
 psycopg2-binary==2.9.9

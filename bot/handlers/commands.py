@@ -45,6 +45,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /export_data - Արտահանել ձեր տվյալները
 /language_stats - Լեզուների բաշխում
 
+💻 **AI Ծրագրավորող:**
+/generate_code <լեզու> <նկարագրություն> - Ստեղծել կոդ
+/analyze_code - Վերլուծել կոդը
+/fix_code <խնդիր> - Ուղղել կոդը
+/explain_code - Բացատրել կոդը
+/refactor_code - Վերակառուցել կոդը
+/generate_tests - Ստեղծել թեստեր
+/github_status - GitHub կարգավիճակ
+
 💡 **Պարզապես գրեք ինձ - /start-ի կարիք չկա!**
 
 🎤 Կարող եք նաև ուղարկել ձայնային հաղորդագրություն։
@@ -73,6 +82,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /export_data - Экспортировать ваши данные
 /language_stats - Распределение по языкам
 
+💻 **AI Разработчик:**
+/generate_code <язык> <описание> - Сгенерировать код
+/analyze_code - Анализ кода
+/fix_code <проблема> - Исправить код
+/explain_code - Объяснить код
+/refactor_code - Рефакторинг кода
+/generate_tests - Сгенерировать тесты
+/github_status - Статус GitHub
+
 💡 **Просто напишите мне - /start не нужен!**
 
 🎤 Вы также можете отправить голосовое сообщение.
@@ -100,6 +118,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /cache_stats - Cache statistics
 /export_data - Export your data
 /language_stats - Language distribution
+
+💻 **AI Developer:**
+/generate_code <language> <description> - Generate code
+/analyze_code - Analyze code
+/fix_code <issue> - Fix code
+/explain_code - Explain code
+/refactor_code - Refactor code
+/generate_tests - Generate tests
+/github_status - GitHub status
 
 💡 **Just write to me - no /start needed!**
 

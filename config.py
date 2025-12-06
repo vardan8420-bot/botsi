@@ -38,6 +38,7 @@ class Config:
     YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY')
     TIKTOK_SESSION_ID = os.getenv('TIKTOK_SESSION_ID')
     FACEBOOK_ACCESS_TOKEN = os.getenv('FACEBOOK_ACCESS_TOKEN')
+    GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
     
     @classmethod
     def validate(cls):
