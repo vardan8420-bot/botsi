@@ -400,11 +400,10 @@ def main():
             print("⏳ Ожидание 5 секунд перед запуском...")
             time.sleep(5)
             
+            # Правильный запуск polling
             app.run_polling(
                 drop_pending_updates=True,
-                allowed_updates=Update.ALL_TYPES,
-                stop_signals=None,
-                close_loop=False
+                allowed_updates=Update.ALL_TYPES
             )
             break
         except Conflict as e:
@@ -434,6 +433,8 @@ def main():
             break
         except Exception as e:
             print(f"❌ Ошибка при запуске бота: {e}")
+            import traceback
+            traceback.print_exc()
             if retry_count < max_retries:
                 wait_time = 10
                 print(f"⏳ Ожидание {wait_time} секунд перед повторной попыткой...")
