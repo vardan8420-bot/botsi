@@ -12,13 +12,11 @@ from telegram.ext import (
 )
 from telegram.error import Conflict
 import os
+import sys
 import asyncio
 import time
 from datetime import datetime
 from typing import Dict, Optional
-
-import sys
-import os
 
 # Добавляем текущую директорию в путь
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
