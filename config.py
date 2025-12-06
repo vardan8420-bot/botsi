@@ -26,10 +26,6 @@ class Config:
     INSTAGRAM_PASSWORD: str = os.getenv('INSTAGRAM_PASSWORD', '')
     YOUTUBE_API_KEY: str = os.getenv('YOUTUBE_API_KEY', '')
     
-    # Marketplace (Часть 3)
-    WILDBERRIES_API_KEY: str = os.getenv('WILDBERRIES_API_KEY', '')
-    OZON_API_KEY: str = os.getenv('OZON_API_KEY', '')
-    
     # GitHub (Часть 4)
     GITHUB_TOKEN: str = os.getenv('GITHUB_TOKEN', '')
     
