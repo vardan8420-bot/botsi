@@ -389,22 +389,10 @@ def main():
     while retry_count < max_retries:
         try:
             print(f"🚀 Попытка запуска бота (попытка {retry_count + 1}/{max_retries})...")
-            
-            # Очистка webhook перед запуском (внутри run_polling будет создан event loop)
-            if retry_count == 0:
-                try:
-                    # Создаем временный event loop для очистки
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(cleanup_webhook(app))
-                    loop.close()
-                    time.sleep(1)
-                except Exception as e:
-                    print(f"⚠️ Ошибка при очистке: {e}")
-            
             print("⏳ Запуск polling...")
             
-            # Запуск polling - он сам создаст и управляет event loop
+            # Запуск polling - он сам создаст event loop и очистит pending updates
+            # drop_pending_updates=True автоматически очистит webhook и pending updates
             app.run_polling(
                 drop_pending_updates=True,
                 allowed_updates=Update.ALL_TYPES
