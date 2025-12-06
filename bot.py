@@ -77,7 +77,7 @@ def load_system_prompt(language: str = 'hy') -> str:
             return "You are Botsi - a smart AI assistant. Respond in English."
 
 
-async def cleanup_before_start(app):
+async def cleanup_webhook(app):
     """
     Очистка webhook перед запуском
     
@@ -85,9 +85,8 @@ async def cleanup_before_start(app):
         app: Приложение бота
     """
     try:
-        async with app:
-            await app.bot.delete_webhook(drop_pending_updates=True)
-            print("✅ Webhook очищен, pending updates удалены")
+        await app.bot.delete_webhook(drop_pending_updates=True)
+        print("✅ Webhook очищен, pending updates удалены")
     except Exception as e:
         print(f"⚠️ Не удалось очистить webhook: {e}")
 
@@ -383,13 +382,6 @@ def main():
         MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
     )
     
-    # Очистка перед запуском
-    try:
-        asyncio.run(cleanup_before_start(app))
-        time.sleep(2)
-    except Exception as e:
-        print(f"⚠️ Ошибка при очистке: {e}")
-    
     # Запуск с обработкой конфликтов
     max_retries = 3
     retry_count = 0
@@ -397,10 +389,22 @@ def main():
     while retry_count < max_retries:
         try:
             print(f"🚀 Попытка запуска бота (попытка {retry_count + 1}/{max_retries})...")
-            print("⏳ Ожидание 5 секунд перед запуском...")
-            time.sleep(5)
             
-            # Правильный запуск polling
+            # Очистка webhook перед запуском (внутри run_polling будет создан event loop)
+            if retry_count == 0:
+                try:
+                    # Создаем временный event loop для очистки
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(cleanup_webhook(app))
+                    loop.close()
+                    time.sleep(1)
+                except Exception as e:
+                    print(f"⚠️ Ошибка при очистке: {e}")
+            
+            print("⏳ Запуск polling...")
+            
+            # Запуск polling - он сам создаст и управляет event loop
             app.run_polling(
                 drop_pending_updates=True,
                 allowed_updates=Update.ALL_TYPES
@@ -414,11 +418,6 @@ def main():
                 wait_time = 30 * retry_count
                 print(f"⏳ Ожидание {wait_time} секунд перед повторной попыткой...")
                 time.sleep(wait_time)
-                try:
-                    asyncio.run(cleanup_before_start(app))
-                    time.sleep(2)
-                except:
-                    pass
             else:
                 print("❌ Достигнуто максимальное количество попыток.")
                 print("💡 Решение:")
