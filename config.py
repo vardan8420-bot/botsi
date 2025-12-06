@@ -13,7 +13,7 @@ class Config:
     """Конфигурация бота"""
     
     # Telegram
-    TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+    TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN') or os.getenv('BOT_TOKEN')
     
     # OpenAI
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
