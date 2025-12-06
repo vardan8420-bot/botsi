@@ -77,18 +77,6 @@ def load_system_prompt(language: str = 'hy') -> str:
             return "You are Botsi - a smart AI assistant. Respond in English."
 
 
-async def cleanup_webhook(app):
-    """
-    Очистка webhook перед запуском
-    
-    Args:
-        app: Приложение бота
-    """
-    try:
-        await app.bot.delete_webhook(drop_pending_updates=True)
-        print("✅ Webhook очищен, pending updates удалены")
-    except Exception as e:
-        print(f"⚠️ Не удалось очистить webhook: {e}")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -382,54 +370,25 @@ def main():
         MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
     )
     
-    # Запуск с обработкой конфликтов
-    max_retries = 3
-    retry_count = 0
-    
-    while retry_count < max_retries:
-        try:
-            print(f"🚀 Попытка запуска бота (попытка {retry_count + 1}/{max_retries})...")
-            print("⏳ Запуск polling...")
-            
-            # Запуск polling - он сам создаст event loop и очистит pending updates
-            # drop_pending_updates=True автоматически очистит webhook и pending updates
-            app.run_polling(
-                drop_pending_updates=True,
-                allowed_updates=Update.ALL_TYPES
-            )
-            break
-        except Conflict as e:
-            retry_count += 1
-            print(f"⚠️ Конфликт обнаружен: {e}")
-            print("💡 Это означает, что где-то еще запущен бот с тем же токеном.")
-            if retry_count < max_retries:
-                wait_time = 30 * retry_count
-                print(f"⏳ Ожидание {wait_time} секунд перед повторной попыткой...")
-                time.sleep(wait_time)
-            else:
-                print("❌ Достигнуто максимальное количество попыток.")
-                print("💡 Решение:")
-                print("   1. В Railway: Settings → остановите все другие сервисы с этим ботом")
-                print("   2. Убедитесь, что бот не запущен локально")
-                print("   3. Подождите 2-3 минуты и перезапустите этот сервис")
-                print("   4. Или создайте новый токен в BotFather и обновите BOT_TOKEN")
-                import sys
-                sys.exit(0)
-        except KeyboardInterrupt:
-            print("⏹️ Бот остановлен пользователем")
-            break
-        except Exception as e:
-            print(f"❌ Ошибка при запуске бота: {e}")
-            import traceback
-            traceback.print_exc()
-            if retry_count < max_retries:
-                wait_time = 10
-                print(f"⏳ Ожидание {wait_time} секунд перед повторной попыткой...")
-                time.sleep(wait_time)
-                retry_count += 1
-            else:
-                print("❌ Критическая ошибка. Бот не может быть запущен.")
-                raise
+    # Простой запуск - библиотека сама все сделает правильно
+    try:
+        print("⏳ Запуск polling...")
+        app.run_polling(
+            drop_pending_updates=True,
+            allowed_updates=Update.ALL_TYPES
+        )
+    except Conflict as e:
+        print(f"⚠️ Конфликт: {e}")
+        print("💡 Остановите другие сервисы с этим ботом в Railway")
+        import sys
+        sys.exit(0)
+    except KeyboardInterrupt:
+        print("⏹️ Бот остановлен")
+    except Exception as e:
+        print(f"❌ Ошибка: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 if __name__ == '__main__':
