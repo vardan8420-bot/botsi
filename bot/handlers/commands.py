@@ -23,11 +23,18 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_texts = {
         'hy': """🤖 **Botsi - AI Օգնական**
 
-📋 **Հասանելի հրամաններ:**
+📋 **Հիմնական հրամաններ:**
 /help - Ցուցադրել այս հաղորդագրությունը
 /language - Փոխել լեզուն (hy|ru|en)
 /stats - Ցուցադրել վիճակագրությունը
 /reset - Մաքրել զրույցի պատմությունը
+
+📝 **Բովանդակության ստեղծում:**
+/generate_blog <թեմա> - Ստեղծել հոդված
+/generate_post <հարթակ> <թեմա> - Ստեղծել սոց․ ցանցի պոստ
+/generate_script <թեմա> - Ստեղծել վիդեո սցենար
+/generate_ad <ապրանք> | <լսարան> - Ստեղծել գովազդ
+/social_status - Հասանելի սոց․ ցանցեր
 
 💡 **Պարզապես գրեք ինձ - /start-ի կարիք չկա!**
 
@@ -35,11 +42,18 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """,
         'ru': """🤖 **Botsi - AI Помощник**
 
-📋 **Доступные команды:**
+📋 **Основные команды:**
 /help - Показать это сообщение
 /language - Сменить язык (hy|ru|en)
 /stats - Показать статистику
 /reset - Очистить историю разговора
+
+📝 **Генерация контента:**
+/generate_blog <тема> - Создать статью
+/generate_post <платформа> <тема> - Создать пост для соцсети
+/generate_script <тема> - Создать сценарий видео
+/generate_ad <продукт> | <аудитория> - Создать рекламу
+/social_status - Доступные соцсети
 
 💡 **Просто напишите мне - /start не нужен!**
 
@@ -47,11 +61,18 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """,
         'en': """🤖 **Botsi - AI Assistant**
 
-📋 **Available commands:**
+📋 **Main commands:**
 /help - Show this message
 /language - Change language (hy|ru|en)
 /stats - Show statistics
 /reset - Clear conversation history
+
+📝 **Content Generation:**
+/generate_blog <topic> - Create blog post
+/generate_post <platform> <topic> - Create social media post
+/generate_script <topic> - Create video script
+/generate_ad <product> | <audience> - Create ad copy
+/social_status - Available social platforms
 
 💡 **Just write to me - no /start needed!**
 
