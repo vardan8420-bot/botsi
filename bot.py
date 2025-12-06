@@ -76,7 +76,18 @@ def load_system_prompt(language: str = 'hy') -> str:
         else:
             return "You are Botsi - a smart AI assistant. Respond in English."
 
-
+async def cleanup_webhook(app):
+    """
+    Очистка webhook перед запуском
+    
+    Args:
+        app: Приложение бота
+    """
+    try:
+        await app.bot.delete_webhook(drop_pending_updates=True)
+        print("✅ Webhook очищен, pending updates удалены")
+    except Exception as e:
+        print(f"⚠️ Не удалось очистить webhook: {e}")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -370,9 +381,17 @@ def main():
         MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
     )
     
-    # Простой запуск - библиотека сама все сделает правильно
+    # Очистка webhook и запуск polling
+    print("🧹 Очистка webhook...")
     try:
-        print("⏳ Запуск polling...")
+        # Используем asyncio.run для очистки webhook перед запуском
+        asyncio.run(cleanup_webhook(app))
+    except Exception as e:
+        print(f"⚠️ Ошибка при очистке: {e}")
+    
+    # Запуск polling - он создаст свой event loop
+    print("⏳ Запуск polling...")
+    try:
         app.run_polling(
             drop_pending_updates=True,
             allowed_updates=Update.ALL_TYPES
