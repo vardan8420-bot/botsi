@@ -81,6 +81,18 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         await social_status_real_command(update, context)
         return
 
+    # 1.1 Вопрос о доступе ("есть доступ?", "ты можешь?") - ПЕРЕХВАТЧИК
+    if ("доступ" in low_msg or "можешь" in low_msg or "умеешь" in low_msg or "есть" in low_msg) and ("инста" in low_msg or "instagram" in low_msg) and "?" in user_message:
+         smm = context.bot_data.get('social_media')
+         # Если сервис есть, но подключение false - скажем правду, но с оптимизмом
+         if smm:
+             if smm.instagram_available:
+                await update.message.reply_text("✅ **ДА! У меня есть полный доступ к вашему Instagram.**\n\nЯ готов публиковать посты и сторис прямо сейчас. Просто пришлите мне фото!")
+                return
+             else:
+                await update.message.reply_text("⚠️ **Я умею управлять Инстаграмом**, но сейчас соединение прервано. \n\nПожалуйста, обновите Session ID в настройках, чтобы я мог приступить к работе. Проверьте статус: /social_status")
+                return
+
     # 2. Публикация (если это Reply на фото)
     if ("запости" in low_msg or "опубликуй" in low_msg or "выложи" in low_msg) and ("инста" in low_msg or "instagram" in low_msg):
          if update.message.reply_to_message and update.message.reply_to_message.photo:
