@@ -3,6 +3,7 @@
 """
 from telegram import Update
 from telegram.ext import ContextTypes
+from bot.services.video_generator import VideoGenerator
 
 
 async def generate_blog_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -182,3 +183,52 @@ async def social_status_command(update: Update, context: ContextTypes.DEFAULT_TY
         )
     
     await update.message.reply_text(message, parse_mode='Markdown')
+
+
+async def generate_video_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Команда /generate_video — создать простое видео из присланного фото."""
+    bot_data = context.application.bot_data
+    video_gen: VideoGenerator = bot_data.get('video_generator') or VideoGenerator()
+    bot_data['video_generator'] = video_gen
+
+    if not update.message:
+        return
+
+    msg = update.message
+    images = []
+    # Берём фото из текущего сообщения или из ответа на фото
+    if msg.photo:
+        images.append((msg.photo[-1].file_id, msg.caption or ""))
+    elif msg.reply_to_message and msg.reply_to_message.photo:
+        images.append((msg.reply_to_message.photo[-1].file_id, msg.reply_to_message.caption or ""))
+
+    if not images:
+        await msg.reply_text("Пришлите фото (или ответьте на фото) и затем вызовите /generate_video.")
+        return
+
+    import tempfile, os
+    tempdir = tempfile.mkdtemp(prefix="botsi_vid_")
+    image_paths = []
+    captions = []
+
+    for file_id, cap in images:
+        file = await context.bot.get_file(file_id)
+        local_path = os.path.join(tempdir, f"photo_{file_id}.jpg")
+        await file.download_to_drive(local_path)
+        image_paths.append(local_path)
+        captions.append(cap)
+
+    output_path = os.path.join(tempdir, "video.mp4")
+
+    try:
+        result_path = video_gen.generate_slideshow(
+            image_paths=image_paths,
+            captions=captions,
+            duration_per_image=3.0,
+            output_path=output_path,
+            fps=30,
+        )
+        with open(result_path, "rb") as f:
+            await msg.reply_video(video=f, caption="Готово: видео создано")
+    except Exception as e:
+        await msg.reply_text(f"Не удалось создать видео: {e}")

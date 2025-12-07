@@ -94,7 +94,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                 return
 
     # 2. Публикация (если это Reply на фото)
-    if ("запости" in low_msg or "опубликуй" in low_msg or "выложи" in low_msg) and ("инста" in low_msg or "instagram" in low_msg):
+    if ("запости" in low_msg or "опубликуй" in low_msg or "выложи" in low_msg or "post now" in low_msg) and ("инста" in low_msg or "instagram" in low_msg):
          if update.message.reply_to_message and update.message.reply_to_message.photo:
              from bot.handlers.social_commands import post_instagram_command
              # Используем весь текст сообщения как описание
@@ -104,6 +104,35 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
          else:
              await update.message.reply_text("💡 Чтобы запостить фото, отправь мне картинку, а потом ОТВЕТЬ (Reply) на нее этим текстом.")
              return
+
+    # 2.1 Запланировать публикацию простыми словами
+    if ("запланируй" in low_msg or "поставь на" in low_msg) and ("инста" in low_msg or "instagram" in low_msg):
+        if update.message.reply_to_message and update.message.reply_to_message.photo:
+            # Ищем простейший шаблон даты/времени YYYY-MM-DD HH:MM
+            import re
+            m = re.search(r"(20\d{2}-\d{2}-\d{2})\s+(\d{2}:\d{2})", low_msg)
+            if m:
+                date_str, time_str = m.group(1), m.group(2)
+                from bot.handlers.social_scheduler import schedule_instagram_command
+                # caption = текст без даты
+                caption = re.sub(r"(20\d{2}-\d{2}-\d{2})\s+(\d{2}:\d{2})", "", user_message).strip()
+                context.args = [date_str, time_str] + (caption.split() if caption else [])
+                await schedule_instagram_command(update, context)
+                return
+            else:
+                await update.message.reply_text("❌ Укажите дату и время в формате: 2025-12-07 18:30")
+                return
+
+    # 2.2 Создай/придумай пост (генерация)
+    if ("придумай пост" in low_msg or "сгенерируй пост" in low_msg or "написать пост" in low_msg or "сделай пост" in low_msg):
+        from bot.handlers.content_commands import generate_post_command
+        # По умолчанию для instagram
+        topic = user_message
+        for phrase in ["придумай пост", "сгенерируй пост", "написать пост", "сделай пост"]:
+            topic = topic.lower().replace(phrase, "").strip()
+        context.args = ["instagram"] + (topic.split() if topic else ["общая тема"])
+        await generate_post_command(update, context)
+        return
 
     # 3. Создание сайта
     if ("создай сайт" in low_msg or "сделай сайт" in low_msg) and len(user_message.split()) > 2:

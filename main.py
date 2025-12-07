@@ -46,7 +46,8 @@ from bot.handlers.content_commands import (
     generate_post_command,
     generate_script_command,
     generate_ad_command,
-    social_status_command
+    social_status_command,
+    generate_video_command
 )
 from bot.handlers.analytics_commands import (
     analytics_command,
@@ -86,6 +87,19 @@ from bot.handlers.github_commands import (
 )
 from bot.handlers.web_commands import create_site_command, audit_site_command
 from bot.handlers.business_commands import youtube_analyze_command, excel_report_command
+from bot.handlers.social_scheduler import (
+    schedule_instagram_command,
+    autopost_status_command,
+    cancel_post_command,
+    scheduled_posts_worker,
+    list_posts_command,
+    post_now_command,
+)
+from bot.handlers.autonomy_commands import (
+    autonomy_on_command,
+    autonomy_off_command,
+    autonomy_status_command,
+)
 
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -105,6 +119,12 @@ async def post_init(application):
     # Удаляем webhook если есть
     await application.bot.delete_webhook(drop_pending_updates=True)
     print("✅ Webhook очищен")
+    # Запускаем фоновый воркер автопостинга
+    try:
+        application.job_queue.run_repeating(scheduled_posts_worker, interval=60, first=10)
+        print("✅ Автопостинг воркер запущен (каждую минуту)")
+    except Exception as e:
+        print(f"⚠️ Не удалось запустить воркер автопостинга: {e}")
 
 
 def main():
@@ -202,6 +222,7 @@ def main():
     application.add_handler(CommandHandler("generate_post", generate_post_command))
     application.add_handler(CommandHandler("generate_script", generate_script_command))
     application.add_handler(CommandHandler("generate_ad", generate_ad_command))
+    application.add_handler(CommandHandler("generate_video", generate_video_command))
     
     # Аналитика
     application.add_handler(CommandHandler("analytics", analytics_command))
@@ -238,7 +259,16 @@ def main():
     application.add_handler(CommandHandler("post_instagram", post_instagram_command))
     application.add_handler(CommandHandler("post_facebook", post_facebook_command))
     application.add_handler(CommandHandler("social_status", social_status_real_command))
-    application.add_handler(CommandHandler("audit_insta", audit_instagram_command))
+    # Автопостинг
+    application.add_handler(CommandHandler("schedule_instagram", schedule_instagram_command))
+    application.add_handler(CommandHandler("autopost_status", autopost_status_command))
+    application.add_handler(CommandHandler("cancel_post", cancel_post_command))
+    application.add_handler(CommandHandler("list_posts", list_posts_command))
+    application.add_handler(CommandHandler("post_now", post_now_command))
+    # Автономия
+    application.add_handler(CommandHandler("autonomy_on", autonomy_on_command))
+    application.add_handler(CommandHandler("autonomy_off", autonomy_off_command))
+    application.add_handler(CommandHandler("autonomy_status", autonomy_status_command))
     
     # SMM & Маркетинг
     application.add_handler(CommandHandler("smm_plan", smm_plan_command))

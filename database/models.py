@@ -49,3 +49,20 @@ class Cache(Base):
     hit_count = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     expires_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class ScheduledPost(Base):
+    """Задача на отложенную публикацию в соцсети"""
+    __tablename__ = 'scheduled_posts'
+
+    id = Column(Integer, primary_key=True)
+    platform = Column(String(50), nullable=False)  # 'Instagram' | 'Facebook'
+    caption = Column(Text, nullable=False)
+    telegram_file_id = Column(String(255))  # Для Instagram фото
+    scheduled_at = Column(DateTime(timezone=True), nullable=False)
+    status = Column(String(20), default='pending')  # pending | posted | failed | canceled
+    attempt_count = Column(Integer, default=0)
+    last_error = Column(Text)
+    created_by = Column(Integer)  # Telegram ID автора задачи
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

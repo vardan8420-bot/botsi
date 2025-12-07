@@ -7,12 +7,11 @@ psycopg2-binary==2.9.9
 PyGithub==2.1.1
 
 # Advanced features
-tavily-python==0.3.0  # Web search
-chromadb==0.4.22  # Vector database для памяти
-Pillow==10.1.0  # Обработка изображений
-requests==2.31.0  # HTTP запросы
-instagrapi==2.0.0  # Instagram API
-numpy<2.0.0  # Fix for ChromaDB compatibility
+tavily-python>=0.3.0  # Web search
+# chromadb>=0.4.22  # Vector database для памяти
+Pillow>=10.2.0  # Обработка изображений
+requests>=2.31.0  # HTTP запросы
+instagrapi>=2.0.0  # Instagram API
 beautifulsoup4==4.12.3 # HTML Parsing for Audit
 youtube-transcript-api==0.6.2  # YouTube Subtitles
 openpyxl==3.1.2  # Excel generation

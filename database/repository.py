@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, select, and_
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import NullPool
 
-from .models import Base, User, Message, Cache
+from .models import Base, User, Message, Cache, ScheduledPost
 
 
 class DatabaseRepository:
@@ -281,3 +281,91 @@ class DatabaseRepository:
             ).delete()
             session.commit()
             return deleted
+
+    # === SCHEDULED POSTS ===
+
+    def add_scheduled_post(
+        self,
+        platform: str,
+        caption: str,
+        scheduled_at,
+        created_by: Optional[int] = None,
+        telegram_file_id: Optional[str] = None,
+    ) -> ScheduledPost:
+        """Создать задачу на отложенную публикацию"""
+        with self.get_session() as session:
+            task = ScheduledPost(
+                platform=platform,
+                caption=caption,
+                telegram_file_id=telegram_file_id,
+                scheduled_at=scheduled_at,
+                status='pending',
+                created_by=created_by,
+            )
+            session.add(task)
+            session.commit()
+            session.refresh(task)
+            return task
+
+    def get_due_scheduled_posts(self, now_dt, limit: int = 5) -> List[ScheduledPost]:
+        """Получить задачи к исполнению"""
+        with self.get_session() as session:
+            return session.query(ScheduledPost).filter(
+                and_(
+                    ScheduledPost.status == 'pending',
+                    ScheduledPost.scheduled_at <= now_dt
+                )
+            ).order_by(ScheduledPost.scheduled_at.asc()).limit(limit).all()
+
+    def mark_scheduled_post_result(self, task_id: int, status: str, error: Optional[str] = None, increment_attempt: bool = True):
+        """Обновить статус задачи"""
+        with self.get_session() as session:
+            task = session.query(ScheduledPost).filter(ScheduledPost.id == task_id).first()
+            if not task:
+                return
+            if increment_attempt:
+                task.attempt_count += 1
+            task.status = status
+            task.last_error = error
+            session.commit()
+
+    def cancel_scheduled_post(self, task_id: int) -> bool:
+        with self.get_session() as session:
+            task = session.query(ScheduledPost).filter(ScheduledPost.id == task_id).first()
+            if not task:
+                return False
+            task.status = 'canceled'
+            session.commit()
+            return True
+
+    def get_autopost_stats(self) -> Dict:
+        with self.get_session() as session:
+            total = session.query(ScheduledPost).count()
+            pending = session.query(ScheduledPost).filter(ScheduledPost.status == 'pending').count()
+            posted = session.query(ScheduledPost).filter(ScheduledPost.status == 'posted').count()
+            failed = session.query(ScheduledPost).filter(ScheduledPost.status == 'failed').count()
+            return {
+                'total': total,
+                'pending': pending,
+                'posted': posted,
+                'failed': failed,
+            }
+
+    # === SETTINGS (через Cache как KV с большим TTL) ===
+    def set_setting(self, key: str, value: str, years: int = 10):
+        """Сохранить настройку (используем Cache как KV)"""
+        ttl = int(365 * 24 * 3600 * years)
+        # переиспользуем set_cached_response, где query=key, response=value
+        self.set_cached_response(query=key, response=value, ttl=ttl)
+
+    def get_setting(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        """Получить настройку, если нет — вернуть default"""
+        val = self.get_cached_response(query=key)
+        return val if val is not None else default
+
+    # === LIST SCHEDULED ===
+    def list_pending_scheduled_posts(self, limit: int = 20):
+        with self.get_session() as session:
+            return session.query(ScheduledPost).filter(
+                ScheduledPost.status == 'pending'
+            ).order_by(ScheduledPost.scheduled_at.asc()).limit(limit).all()
