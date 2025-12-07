@@ -16,27 +16,40 @@ class SocialMediaManager:
     ):
         """
         Инициализация менеджера
-        
-        Args:
-            instagram_username: Instagram логин
-            instagram_password: Instagram пароль
-            facebook_token: Facebook access token
         """
         self.instagram_available = False
         self.facebook_available = False
         
         # Instagram (через instagrapi)
-        if instagram_username and instagram_password:
-            try:
-                from instagrapi import Client
-                self.instagram_client = Client()
-                self.instagram_client.login(instagram_username, instagram_password)
-                self.instagram_available = True
-                print("✅ Instagram подключен")
-            except Exception as e:
-                print(f"⚠️ Instagram недоступен: {e}")
-        else:
-            print("⚠️ Instagram: нужны INSTAGRAM_USERNAME и INSTAGRAM_PASSWORD")
+        try:
+            from instagrapi import Client
+            self.instagram_client = Client()
+            
+            session_id = os.getenv('INSTAGRAM_SESSION_ID')
+            
+            # 1. Сначала пробуем Session ID (самый надежный способ)
+            if session_id:
+                try:
+                    self.instagram_client.login_by_sessionid(session_id)
+                    self.instagram_available = True
+                    print("✅ Instagram подключен (через Session ID)")
+                except Exception as e:
+                    print(f"⚠️ Ошибка входа по Session ID: {e}")
+            
+            # 2. Если не вышло - пробуем Логин/Пароль
+            if not self.instagram_available and instagram_username and instagram_password:
+                try:
+                    self.instagram_client.login(instagram_username, instagram_password)
+                    self.instagram_available = True
+                    print("✅ Instagram подключен (через Логин/Пароль)")
+                except Exception as e:
+                    print(f"⚠️ Instagram недоступен (Логин/Пароль): {e}")
+                    
+            if not self.instagram_available:
+                print("⚠️ Instagram не подключен. Укажите INSTAGRAM_SESSION_ID или Логин/Пароль")
+                
+        except Exception as e:
+            print(f"⚠️ Ошибка инициализации Instagram: {e}")
         
         # Facebook (через Graph API)
         if facebook_token:
