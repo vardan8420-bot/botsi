@@ -240,18 +240,17 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     response_lower = response.lower()
     for phrase in forbidden_phrases:
-        if phrase in response_lower:
-            print(f"🚫 Цензор заблокировал пораженческий ответ: {phrase}")
+        if "нет возможности" in response_lower or "нет доступа" in response_lower:
+            print(f"🚫 Цензор заблокировал ответ: {response[:50]}...")
             
-            # Вместо нытья - проверяем реальный статус и отвечаем
+            # Вместо нытья - проверяем реальный статус и отвечаем (БЕЗ MARKDOWN, чтобы не ломалось об _ в никах)
             smm = context.bot_data.get('social_media')
             if smm and smm.instagram_available:
-                response = f"✅ Принято! У меня есть доступ к @{smm.my_username}. Приступаю к выполнению задачи.\n\n(Я проанализирую данные и подготовлю отчет)."
+                response = f"✅ Принято! У меня есть доступ к аккаунту {smm.my_username}. Приступаю к выполнению задачи.\n\n(Анализирую данные...)"
             else:
                 response = "⚠️ Я готов приступить, но нужно проверить соединение. Напишите /social_status"
             break
-    # ==============================
-
+            
     # === AGENTIC ACTION EXECUTOR (Выполнение тегов) ===
     # Ищем теги вида [[ACTION: name | ARGS: "value"]]
     import re
@@ -263,11 +262,10 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         action_name = action_match.group(1)
         action_args = action_match.group(2)
         
-        print(f"🤖 AGENT ACTION DETECTED: {action_name} params={action_args}")
-        
         # Очищаем ответ от технического тега
         clean_response = response.replace(action_match.group(0), "").strip()
         if clean_response:
+             # Отправляем БЕЗ Markdown, чтобы избежать Can't parse entities
              await update.message.reply_text(clean_response)
         
         smm = context.bot_data.get('social_media')
@@ -278,7 +276,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                 wait_msg = await update.message.reply_text("⚙️ Применяю новые настройки профиля...")
                 res = await smm.update_profile(biography=action_args)
                 if res['success']:
-                    await wait_msg.edit_text("✅ **Профиль успешно обновлен!** Новое био установлено.")
+                    await wait_msg.edit_text(f"✅ Профиль успешно обновлен! Новое био установлено для {smm.my_username}.")
                 else:
                     await wait_msg.edit_text(f"❌ Ошибка Instagram: {res['error']}")
             else:
