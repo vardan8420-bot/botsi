@@ -32,6 +32,14 @@ class SocialMediaManager:
                 try:
                     self.instagram_client.login_by_sessionid(session_id)
                     self.instagram_available = True
+                    # Узнаем, кто мы
+                    try:
+                        self.my_info = self.instagram_client.account_info()
+                        self.my_username = self.my_info.username
+                        print(f"✅ Instagram подключен как: {self.my_username}")
+                    except:
+                        self.my_username = "Unknown"
+                        
                     print("✅ Instagram подключен (через Session ID)")
                 except Exception as e:
                     print(f"⚠️ Ошибка входа по Session ID: {e}")
@@ -41,7 +49,15 @@ class SocialMediaManager:
                 try:
                     self.instagram_client.login(instagram_username, instagram_password)
                     self.instagram_available = True
-                    print("✅ Instagram подключен (через Логин/Пароль)")
+                    
+                    # Узнаем, кто мы
+                    try:
+                        self.my_info = self.instagram_client.account_info()
+                        self.my_username = self.my_info.username
+                    except:
+                        self.my_username = "Unknown"
+
+                    print(f"✅ Instagram подключен (Логин/Пароль) как: {self.my_username}")
                 except Exception as e:
                     print(f"⚠️ Instagram недоступен (Логин/Пароль): {e}")
                     

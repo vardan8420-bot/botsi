@@ -282,16 +282,23 @@ Be concise."""
 }
 
 
-def get_system_prompt(language: str = 'hy', mode: str = 'normal') -> str:
+def get_system_prompt(language: str = 'hy', mode: str = 'normal', username: str = None) -> str:
     """
     Получить системный промпт для языка и режима
     
     Args:
         language: Код языка ('hy', 'ru', 'en')
         mode: Режим работы ('normal', 'expert', 'teacher', 'quick')
+        username: Имя подключенного Instagram аккаунта (опционально)
         
     Returns:
         Системный промпт
     """
     mode_prompts = MODE_PROMPTS.get(mode, MODE_PROMPTS['normal'])
-    return mode_prompts.get(language, mode_prompts['en'])
+    base_prompt = mode_prompts.get(language, mode_prompts['en'])
+    
+    if username:
+        context_add = f"\n\n🔑 ТЕКУЩИЙ АККАУНТ INSTAGRAM: @{username}\nТы управляешь именно этим аккаунтом. Не спрашивай его название."
+        return base_prompt + context_add
+        
+    return base_prompt

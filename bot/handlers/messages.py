@@ -127,8 +127,13 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Определяем режим работы по сообщению
     mode = ModeDetector.detect_mode(user_message, language)
     
-    # Загружаем системный промпт с учетом режима
-    system_prompt = get_system_prompt(language, mode)
+    # Загружаем системный промпт с учетом режима и контекста соцсетей
+    smm = context.bot_data.get('social_media')
+    insta_username = None
+    if smm and hasattr(smm, 'my_username') and smm.my_username != "Unknown":
+        insta_username = smm.my_username
+
+    system_prompt = get_system_prompt(language, mode, username=insta_username)
     
     # --- MIND SYNC: Адаптация под пользователя ---
     mind_sync = context.bot_data.get('mind_sync')
