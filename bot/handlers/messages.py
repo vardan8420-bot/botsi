@@ -72,6 +72,46 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         return
     
+    # === SMART ROUTING: Обработка намерений (Intents) ===
+    low_msg = user_message.lower()
+    
+    # 1. Проверка статуса соцсетей
+    if ("статус" in low_msg or "проверь" in low_msg or "зайди" in low_msg) and ("инста" in low_msg or "соцсет" in low_msg or "instagram" in low_msg):
+        from bot.handlers.social_commands import social_status_real_command
+        await social_status_real_command(update, context)
+        return
+
+    # 2. Публикация (если это Reply на фото)
+    if ("запости" in low_msg or "опубликуй" in low_msg or "выложи" in low_msg) and ("инста" in low_msg or "instagram" in low_msg):
+         if update.message.reply_to_message and update.message.reply_to_message.photo:
+             from bot.handlers.social_commands import post_instagram_command
+             # Используем весь текст сообщения как описание
+             context.args = user_message.split() 
+             await post_instagram_command(update, context)
+             return
+         else:
+             await update.message.reply_text("💡 Чтобы запостить фото, отправь мне картинку, а потом ОТВЕТЬ (Reply) на нее этим текстом.")
+             return
+
+    # 3. Создание сайта
+    if ("создай сайт" in low_msg or "сделай сайт" in low_msg) and len(user_message.split()) > 2:
+        from bot.handlers.web_commands import create_site_command
+        topic = user_message.replace("создай сайт", "").replace("сделай сайт", "").strip()
+        context.args = topic.split()
+        await create_site_command(update, context)
+        return
+        
+    # 4. Анализ YouTube
+    if ("видео" in low_msg or "youtube" in low_msg) and ("анализ" in low_msg or "посмотри" in low_msg or "что там" in low_msg) and "http" in user_message:
+        from bot.handlers.business_commands import youtube_analyze_command
+        # Пытаемся найти ссылку
+        for word in user_message.split():
+            if word.startswith('http'):
+                context.args = [word]
+                await youtube_analyze_command(update, context)
+                return
+    # ====================================================
+
     # Определяем режим работы по сообщению
     mode = ModeDetector.detect_mode(user_message, language)
     
