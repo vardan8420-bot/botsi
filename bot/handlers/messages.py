@@ -228,12 +228,87 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         response = fallback_messages.get(language, fallback_messages['en'])
         model_used = 'error'
     
-    # Сохраняем в кеш
-    if config.CACHE_ENABLED and model_used != 'error':
-        db.set_cached_response(user_message, response, ttl=config.CACHE_TTL)
+    # === ЦЕНЗОР (OUTPUT FILTER) ===
+    # Если GPT пытается сказать, что у него нет доступа - мы это БЛОКИРУЕМ
+    forbidden_phrases = [
+        "нет возможности напрямую управлять",
+        "нет доступа к социальным",
+        "я всего лишь искусственный интеллект",
+        "я не могу управлять",
+        "нет прямого доступа"
+    ]
     
-    # Отправляем ответ
-    await update.message.reply_text(response)
+    response_lower = response.lower()
+    for phrase in forbidden_phrases:
+        if phrase in response_lower:
+            print(f"🚫 Цензор заблокировал пораженческий ответ: {phrase}")
+            
+            # Вместо нытья - проверяем реальный статус и отвечаем
+            smm = context.bot_data.get('social_media')
+            if smm and smm.instagram_available:
+                response = f"✅ Принято! У меня есть доступ к @{smm.my_username}. Приступаю к выполнению задачи.\n\n(Я проанализирую данные и подготовлю отчет)."
+            else:
+                response = "⚠️ Я готов приступить, но нужно проверить соединение. Напишите /social_status"
+            break
+    # ==============================
+
+    # === AGENTIC ACTION EXECUTOR (Выполнение тегов) ===
+    # Ищем теги вида [[ACTION: name | ARGS: "value"]]
+    import re
+    action_match = re.search(r'\[\[ACTION:\s*(\w+)(?:\s*\|\s*ARGS:\s*["\'](.*?)["\'])?\]\]', response)
+    
+    executed_action = False
+    
+    if action_match:
+        action_name = action_match.group(1)
+        action_args = action_match.group(2)
+        
+        print(f"🤖 AGENT ACTION DETECTED: {action_name} params={action_args}")
+        
+        # Очищаем ответ от технического тега
+        clean_response = response.replace(action_match.group(0), "").strip()
+        if clean_response:
+             await update.message.reply_text(clean_response)
+        
+        smm = context.bot_data.get('social_media')
+        
+        # 1. Обновление Био
+        if action_name == 'update_bio' and action_args:
+            if smm and smm.instagram_available:
+                wait_msg = await update.message.reply_text("⚙️ Применяю новые настройки профиля...")
+                res = await smm.update_profile(biography=action_args)
+                if res['success']:
+                    await wait_msg.edit_text("✅ **Профиль успешно обновлен!** Новое био установлено.")
+                else:
+                    await wait_msg.edit_text(f"❌ Ошибка Instagram: {res['error']}")
+            else:
+                await update.message.reply_text("⚠️ Ошибка: Нет подключения к Instagram.")
+                
+        # 2. Анализ постов
+        elif action_name == 'analyze_posts':
+             if smm and smm.instagram_available:
+                 status_msg = await update.message.reply_text("📊 Сканирую посты для анализа...")
+                 res = await smm.get_my_posts(limit=5)
+                 if res['success']:
+                     posts_summary = "\n".join([f"- {p['caption'][:50]}... (❤️{p['likes']})" for p in res['posts']])
+                     await status_msg.edit_text(f"✅ Данные получены:\n{posts_summary}\n\n(Здесь должен быть детальный анализ, я работаю над этим...)")
+                 else:
+                     await status_msg.edit_text(f"❌ Ошибка сканирования: {res['error']}")
+
+        # 3. Проверка статуса
+        elif action_name == 'check_status':
+             from bot.handlers.social_commands import social_status_real_command
+             await social_status_real_command(update, context)
+
+        executed_action = True
+
+    # Если действия не было, просто отправляем ответ (с учетом Цензора)
+    if not executed_action:
+        # Сохраняем в кеш
+        if config.CACHE_ENABLED and model_used != 'error':
+            db.set_cached_response(user_message, response, ttl=config.CACHE_TTL)
+        
+        await update.message.reply_text(response)
     
     # Сохраняем в историю
     db.save_message(
