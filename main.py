@@ -80,20 +80,6 @@ from bot.handlers.advanced_commands import (
     image_command
 )
 from bot.handlers.github_commands import (
-    github_repos_command,
-    github_create_repo_command,
-    github_create_file_command,
-    github_info_command
-)
-from bot.handlers.social_commands import (
-    post_instagram_command,
-    post_facebook_command,
-    social_status_real_command
-)
-from bot.handlers.smm_commands import (
-    smm_plan_command,
-    target_audience_command,
-    sales_funnel_command,
     copywriting_command,
     hashtags_command,
     competitor_command
@@ -252,6 +238,7 @@ def main():
     application.add_handler(CommandHandler("post_instagram", post_instagram_command))
     application.add_handler(CommandHandler("post_facebook", post_facebook_command))
     application.add_handler(CommandHandler("social_status", social_status_real_command))
+    application.add_handler(CommandHandler("audit_insta", audit_instagram_command))
     
     # SMM & Маркетинг
     application.add_handler(CommandHandler("smm_plan", smm_plan_command))

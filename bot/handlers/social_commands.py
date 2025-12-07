@@ -8,14 +8,12 @@ import os
 
 async def post_instagram_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /post_instagram - опубликовать в Instagram"""
-    social = context.bot_data.get('social_media_real')
+    social = context.bot_data.get('social_media') # FIXED key name
     
     if not social or not social.instagram_available:
         await update.message.reply_text(
             "⚠️ Instagram недоступен.\n\n"
-            "Добавьте в Railway:\n"
-            "INSTAGRAM_USERNAME=ваш_логин\n"
-            "INSTAGRAM_PASSWORD=ваш_пароль"
+            "Добавьте в Railway INSTAGRAM_SESSION_ID."
         )
         return
     
@@ -59,14 +57,13 @@ async def post_instagram_command(update: Update, context: ContextTypes.DEFAULT_T
 
 async def post_facebook_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /post_facebook - опубликовать в Facebook"""
-    social = context.bot_data.get('social_media_real')
+    social = context.bot_data.get('social_media')
     
     if not social or not social.facebook_available:
         await update.message.reply_text(
             "⚠️ Facebook недоступен.\n\n"
             "Добавьте в Railway:\n"
-            "FACEBOOK_ACCESS_TOKEN=ваш_токен\n\n"
-            "Получить токен: https://developers.facebook.com"
+            "FACEBOOK_ACCESS_TOKEN=ваш_токен"
         )
         return
     
@@ -93,7 +90,7 @@ async def post_facebook_command(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def social_status_real_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /social_status - статус соцсетей"""
-    social = context.bot_data.get('social_media_real')
+    social = context.bot_data.get('social_media')
     
     if not social:
         await update.message.reply_text("⚠️ Менеджер соцсетей недоступен")
@@ -111,10 +108,52 @@ async def social_status_real_command(update: Update, context: ContextTypes.DEFAU
         response += "**Команды:**\n"
         if status['instagram']:
             response += "/post_instagram - опубликовать в Instagram\n"
+            response += "/audit_insta - Полный аудит аккаунта (NEW)\n"
         if status['facebook']:
             response += "/post_facebook - опубликовать в Facebook\n"
     else:
         response += "⚠️ Нет доступных платформ\n\n"
         response += "Добавьте учетные данные в Railway"
     
-    await update.message.reply_text(response, parse_mode='Markdown')
+    # Parse mode None для безопасности
+    await update.message.reply_text(response)
+
+
+async def audit_instagram_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Прямой аудит инстаграма (без GPT)"""
+    smm = context.bot_data.get('social_media')
+    
+    status_msg = await update.message.reply_text("🔍 Проверяю доступ...")
+    
+    if not smm or not smm.instagram_available:
+         await status_msg.edit_text("❌ Инстаграм пока не подключен. Проверьте Session ID.")
+         return
+
+    await status_msg.edit_text(f"🕵️‍♂️ **Прямой аудит: {smm.my_username}**\n\nСкачиваю данные напрямую из Instagram API...")
+    
+    try:
+        # 1. Получаем посты
+        res_posts = await smm.get_my_posts(limit=5)
+        
+        if res_posts['success']:
+            report = f"✅ ОТЧЕТ ПО @{smm.my_username}\n\n"
+            report += f"📊 Постов проанализировано: {len(res_posts['posts'])}\n\n"
+            
+            total_likes = 0
+            total_comments = 0
+            
+            for i, p in enumerate(res_posts['posts']):
+                report += f"🔹 Пост {i+1} ({p['type']})\n"
+                report += f"❤️ Лайки: {p['likes']} | 💬 Комменты: {p['comments']}\n"
+                report += f"📝 Текст: {p['caption'][:50]}...\n\n"
+                total_likes += p['likes']
+                total_comments += p['comments']
+                
+            report += f"📈 ИТОГО: {total_likes} лайков, {total_comments} комментариев."
+            
+            await status_msg.edit_text(report) # Без Markdown, безопасно
+        else:
+            await status_msg.edit_text(f"❌ Ошибка получения постов: {res_posts['error']}")
+            
+    except Exception as e:
+        await status_msg.edit_text(f"❌ Критическая ошибка: {str(e)}")
