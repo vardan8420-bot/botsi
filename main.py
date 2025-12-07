@@ -31,6 +31,8 @@ from bot.services.smm_marketing import SMMMarketingService
 from bot.services.mind_sync import MindSyncService
 from bot.services.project_architect import ProjectArchitectService
 from bot.services.site_auditor import SiteAuditorService
+from bot.services.youtube_analyst import YouTubeAnalystService
+from bot.services.report_generator import ReportGeneratorService
 
 # Handlers
 from bot.handlers.commands import (
@@ -97,6 +99,7 @@ from bot.handlers.smm_commands import (
     competitor_command
 )
 from bot.handlers.web_commands import create_site_command, audit_site_command
+from bot.handlers.business_commands import youtube_analyze_command, excel_report_command
 
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -172,6 +175,8 @@ def main():
     mind_sync = MindSyncService(ai.client, memory)
     project_architect = ProjectArchitectService(ai.client, github_manager)
     site_auditor = SiteAuditorService(ai.client)
+    youtube_analyst = YouTubeAnalystService(ai.client)
+    report_generator = ReportGeneratorService()
     
     # Создание приложения
     application = ApplicationBuilder().token(Config.TELEGRAM_BOT_TOKEN).build()
@@ -194,6 +199,8 @@ def main():
     application.bot_data['mind_sync'] = mind_sync
     application.bot_data['project_architect'] = project_architect
     application.bot_data['site_auditor'] = site_auditor
+    application.bot_data['youtube_analyst'] = youtube_analyst
+    application.bot_data['report_generator'] = report_generator
     
     # --- Регистрация обработчиков команд ---
     
@@ -257,6 +264,10 @@ def main():
     # Web Architect
     application.add_handler(CommandHandler("create_site", create_site_command))
     application.add_handler(CommandHandler("audit_site", audit_site_command))
+    
+    # Business & Analytics
+    application.add_handler(CommandHandler("youtube", youtube_analyze_command))
+    application.add_handler(CommandHandler("report_excel", excel_report_command))
     
     # Обработчики сообщений
     application.add_handler(
