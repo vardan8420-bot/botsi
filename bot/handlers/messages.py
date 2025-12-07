@@ -122,6 +122,69 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                 context.args = [word]
                 await youtube_analyze_command(update, context)
                 return
+
+    # 5. Анализ своего Инстаграма (Smart Analysis)
+    if ("анализ" in low_msg or "статистика" in low_msg or "посты" in low_msg or "аккаунт" in low_msg) and ("инста" in low_msg or "instagram" in low_msg) and ("мой" in low_msg or "наш" in low_msg or "этот" in low_msg):
+        smm = context.bot_data.get('social_media')
+        if smm and smm.instagram_available:
+            status_msg = await update.message.reply_text(f"📊 Сканирую последние 5 постов аккаунта @{smm.my_username}...")
+            
+            result = await smm.get_my_posts(limit=5)
+            
+            if result['success']:
+                posts_text = "\n---\n".join([
+                    f"Post {i+1} [{p['type']}]: ❤️ {p['likes']} likes, 💬 {p['comments']} comments.\nТекст: {p['caption'][:200]}..." 
+                    for i, p in enumerate(result['posts'])
+                ])
+                
+                # Подменяем сообщение пользователя для GPT
+                # GPT увидит реальные данные и даст анализ
+                user_message = f"""Проанализируй состояние моего Instagram аккаунта @{smm.my_username} на основе последних постов:
+
+{posts_text}
+
+Дай краткий отчет:
+1. Вовлеченность (лайки/комменты).
+2. Качество контента (судя по текстам).
+3. 3 конкретных совета, что улучшить прямо сейчас."""
+                
+                # Удаляем сообщение "Сканирую..."
+                await status_msg.delete()
+                
+                # Дальше код пойдет к GPT (строка ниже) с уже новым user_message
+            else:
+                await status_msg.edit_text(f"⚠️ Не удалось прочитать посты: {result['error']}")
+                return
+
+    # 6. Обновление Профиля (Update Bio)
+    if ("поменяй" in low_msg or "установи" in low_msg or "обнови" in low_msg) and ("био" in low_msg or "шапку" in low_msg or "описание" in low_msg) and ("инста" in low_msg or "instagram" in low_msg):
+        
+        # Пытаемся найти новый текст
+        new_bio = None
+        if ":" in user_message:
+            new_bio = user_message.split(":", 1)[1].strip()
+        elif " на " in user_message: # "Поменяй био НА новый текст"
+            new_bio = user_message.split(" на ", 1)[1].strip()
+            
+        if new_bio:
+            smm = context.bot_data.get('social_media')
+            if smm and smm.instagram_available:
+                status_msg = await update.message.reply_text(f"⚙️ Приступаю к настройке профиля...\nНовое описание: \n'{new_bio}'")
+                
+                # Обновляем
+                res = await smm.update_profile(biography=new_bio)
+                
+                if res['success']:
+                    await status_msg.edit_text(f"✅ **ГОТОВО!**\n\nЯ обновил информацию в профиле @{smm.my_username}.\nТеперь он выглядит профессионально!")
+                else:
+                     await status_msg.edit_text(f"❌ Instagram не дал обновить профиль: {res['error']}")
+            else:
+                 await update.message.reply_text("⚠️ Нет подключения к Instagram для выполнения настроек.")
+            return
+        else:
+             await update.message.reply_text("💡 Чтобы я изменил описание профиля, напишите команду четко:\n\n`Поменяй био в инсте НА: Текст вашего описания`", parse_mode='Markdown')
+             return
+
     # ====================================================
 
     # Определяем режим работы по сообщению

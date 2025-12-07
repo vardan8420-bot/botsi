@@ -174,6 +174,62 @@ class SocialMediaManager:
                 'error': f'Ошибка Facebook: {str(e)}'
             }
     
+    async def get_my_posts(self, limit: int = 5) -> Dict:
+        """
+        Получить последние посты своего аккаунта для анализа
+        """
+        if not self.instagram_available:
+            return {"success": False, "error": "Instagram не подключен"}
+            
+        try:
+            # Получаем ID пользователя
+            user_id = self.instagram_client.user_id_from_username(self.my_username)
+            # Получаем медиа
+            medias = self.instagram_client.user_medias(user_id, amount=limit)
+            
+            posts_data = []
+            for media in medias:
+                posts_data.append({
+                    "id": media.pk,
+                    "caption": media.caption_text,
+                    "likes": media.like_count,
+                    "comments": media.comment_count,
+                    "type": media.media_type, # 1=Photo, 2=Video, 8=Album
+                    "url": f"https://instagram.com/p/{media.code}"
+                })
+                
+            return {
+                "success": True, 
+                "username": self.my_username,
+                "posts": posts_data
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def update_profile(self, biography: str = None, full_name: str = None, external_url: str = None) -> Dict:
+        """
+        Обновление информации профиля (Био, Имя, Сайт)
+        """
+        if not self.instagram_available:
+            return {"success": False, "error": "Нет подключения к Instagram"}
+            
+        try:
+            # Сначала получаем текущие данные, чтобы не стереть лишнее
+            current_info = self.instagram_client.account_info()
+            
+            new_biography = biography if biography is not None else current_info.biography
+            new_full_name = full_name if full_name is not None else current_info.full_name
+            new_external_url = external_url if external_url is not None else current_info.external_url
+            
+            self.instagram_client.account_edit(
+                biography=new_biography,
+                first_name=new_full_name,
+                external_url=new_external_url
+            )
+            return {"success": True, "message": "Профиль успешно обновлен!"}
+        except Exception as e:
+            return {"success": False, "error": f"Ошибка обновления профиля: {str(e)}"}
+
     def get_status(self) -> Dict:
         """
         Получить статус подключений
