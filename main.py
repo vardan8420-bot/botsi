@@ -135,8 +135,9 @@ async def post_init(application):
     print("✅ Webhook очищен")
     # Запускаем фоновый воркер автопостинга
     try:
-        application.job_queue.run_repeating(scheduled_posts_worker, interval=60, first=10)
-        print("✅ Автопостинг воркер запущен (каждую минуту)")
+        # Интервал 120 секунд (2 минуты) для надежности, чтобы избежать пропусков
+        application.job_queue.run_repeating(scheduled_posts_worker, interval=120, first=10)
+        print("✅ Автопостинг воркер запущен (каждые 2 минуты)")
     except Exception as e:
         print(f"⚠️ Не удалось запустить воркер автопостинга: {e}")
 

@@ -163,7 +163,8 @@ async def scheduled_posts_worker(context: ContextTypes.DEFAULT_TYPE):
     from datetime import datetime as dt
     now_dt = dt.now().astimezone() if hasattr(dt.now(), 'astimezone') else dt.now()
 
-    tasks = db.get_due_scheduled_posts(now_dt=now_dt, limit=3)
+    # Обрабатываем только 1 задачу за раз, чтобы не пропускать интервалы
+    tasks = db.get_due_scheduled_posts(now_dt=now_dt, limit=1)
     for task in tasks:
         try:
             if task.platform == 'Instagram':
@@ -182,13 +183,13 @@ async def scheduled_posts_worker(context: ContextTypes.DEFAULT_TYPE):
 
                 result = await social.post_instagram(task.caption, tmp_path)
 
-                # Удаление временного файла
+                # Удаление временного файла (асинхронно, не блокируем)
                 import os
-                if os.path.exists(tmp_path):
-                    try:
+                try:
+                    if os.path.exists(tmp_path):
                         os.remove(tmp_path)
-                    except Exception:
-                        pass
+                except Exception:
+                    pass  # Игнорируем ошибки удаления
 
                 if result.get('success'):
                     db.mark_scheduled_post_result(task.id, 'posted', error=None)
