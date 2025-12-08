@@ -184,19 +184,42 @@ class SocialMediaManager:
         try:
             # Получаем ID пользователя
             user_id = self.instagram_client.user_id_from_username(self.my_username)
-            # Получаем медиа
-            medias = self.instagram_client.user_medias(user_id, amount=limit)
+            # Получаем медиа с обработкой ошибок API
+            try:
+                medias = self.instagram_client.user_medias(user_id, amount=limit)
+            except (KeyError, TypeError) as api_error:
+                # Instagram API изменился - пробуем альтернативный метод
+                try:
+                    # Пробуем получить через account_info и затем медиа
+                    account_info = self.instagram_client.account_info()
+                    user_id = account_info.pk
+                    medias = self.instagram_client.user_medias(user_id, amount=limit)
+                except Exception as fallback_error:
+                    return {
+                        "success": False, 
+                        "error": f"Instagram API недоступен. Возможно, нужен обновленный Session ID. Ошибка: {str(api_error)}"
+                    }
             
             posts_data = []
             for media in medias:
-                posts_data.append({
-                    "id": media.pk,
-                    "caption": media.caption_text,
-                    "likes": media.like_count,
-                    "comments": media.comment_count,
-                    "type": media.media_type, # 1=Photo, 2=Video, 8=Album
-                    "url": f"https://instagram.com/p/{media.code}"
-                })
+                try:
+                    posts_data.append({
+                        "id": getattr(media, 'pk', getattr(media, 'id', 'unknown')),
+                        "caption": getattr(media, 'caption_text', getattr(media, 'caption', '')),
+                        "likes": getattr(media, 'like_count', getattr(media, 'likes', 0)),
+                        "comments": getattr(media, 'comment_count', getattr(media, 'comments', 0)),
+                        "type": getattr(media, 'media_type', 'photo'), # 1=Photo, 2=Video, 8=Album
+                        "url": f"https://instagram.com/p/{getattr(media, 'code', '')}"
+                    })
+                except Exception as media_error:
+                    # Пропускаем проблемные посты
+                    continue
+                
+            if not posts_data:
+                return {
+                    "success": False,
+                    "error": "Не удалось получить данные постов. Возможно, Instagram изменил API."
+                }
                 
             return {
                 "success": True, 
@@ -204,7 +227,10 @@ class SocialMediaManager:
                 "posts": posts_data
             }
         except Exception as e:
-            return {"success": False, "error": str(e)}
+            return {
+                "success": False, 
+                "error": f"Ошибка получения постов: {str(e)}. Возможно, нужен обновленный Session ID."
+            }
 
     async def update_profile(self, biography: str = None, full_name: str = None, external_url: str = None) -> Dict:
         """

@@ -333,7 +333,12 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                             # Получаем анализ от GPT
                             ai = context.bot_data.get('ai')
                             config = context.bot_data.get('config')
-                            user_obj = db.get_user(update.effective_user.id) if db else None
+                            user_obj = db.get_or_create_user(
+                                telegram_id=update.effective_user.id,
+                                username=update.effective_user.username,
+                                first_name=update.effective_user.first_name,
+                                last_name=update.effective_user.last_name
+                            ) if db else None
                             language = user_obj.language if user_obj else 'ru'
                             
                             mode = ModeDetector.detect_mode(analysis_prompt, language)
