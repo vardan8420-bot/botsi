@@ -153,7 +153,12 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                 return
 
     # 5. Анализ своего Инстаграма (Smart Analysis)
-    if ("анализ" in low_msg or "статистика" in low_msg or "посты" in low_msg or "аккаунт" in low_msg) and ("инста" in low_msg or "instagram" in low_msg) and ("мой" in low_msg or "наш" in low_msg or "этот" in low_msg):
+    # Распознаем запросы на анализ: "проанализируй", "анализ", "статистика" + "инста"/"instagram" + "мой"/"наш"/"этот" или просто вопрос
+    is_analyze_request = ("анализ" in low_msg or "проанализ" in low_msg or "статистика" in low_msg or "посты" in low_msg or "аккаунт" in low_msg) 
+    is_instagram_mentioned = ("инста" in low_msg or "instagram" in low_msg)
+    is_my_account = ("мой" in low_msg or "наш" in low_msg or "этот" in low_msg or "moy" in low_msg or "moj" in low_msg)
+    
+    if is_analyze_request and is_instagram_mentioned and (is_my_account or "?" in user_message):
         smm = context.bot_data.get('social_media_real')
         if smm and smm.instagram_available:
             status_msg = await update.message.reply_text(f"📊 Сканирую последние 5 постов аккаунта @{smm.my_username}...")
@@ -299,11 +304,56 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                     response = "✅ Я могу анализировать сайты! Используйте команду /audit_site <url>"
                 break
             
-            # Если речь о соцсетях - проверяем social_media_real
+            # Если речь о соцсетях - проверяем social_media_real и запускаем анализ
             elif is_about_social:
                 smm = context.bot_data.get('social_media_real')
                 if smm and smm.instagram_available:
-                    response = f"✅ Принято! У меня есть доступ к аккаунту {smm.my_username}. Приступаю к выполнению задачи.\n\n(Анализирую данные...)"
+                    # Если это запрос на анализ Instagram - запускаем реальный анализ
+                    if ("анализ" in user_msg_lower or "проанализ" in user_msg_lower or "статистика" in user_msg_lower) and ("инста" in user_msg_lower or "instagram" in user_msg_lower):
+                        status_msg = await update.message.reply_text(f"📊 Сканирую последние 5 постов аккаунта @{smm.my_username}...")
+                        
+                        result = await smm.get_my_posts(limit=5)
+                        
+                        if result['success']:
+                            posts_text = "\n---\n".join([
+                                f"Post {i+1} [{p['type']}]: ❤️ {p['likes']} likes, 💬 {p['comments']} comments.\nТекст: {p['caption'][:200]}..." 
+                                for i, p in enumerate(result['posts'])
+                            ])
+                            
+                            # Формируем запрос для GPT с реальными данными
+                            analysis_prompt = f"""Проанализируй состояние моего Instagram аккаунта @{smm.my_username} на основе последних постов:
+
+{posts_text}
+
+Дай краткий отчет:
+1. Вовлеченность (лайки/комменты).
+2. Качество контента (судя по текстам).
+3. 3 конкретных совета, что улучшить прямо сейчас."""
+                            
+                            # Получаем анализ от GPT
+                            ai = context.bot_data.get('ai')
+                            config = context.bot_data.get('config')
+                            language = db.get_user(update.effective_user.id).language if db else 'ru'
+                            
+                            from bot.prompts import get_system_prompt, ModeDetector
+                            mode = ModeDetector.detect_mode(analysis_prompt, language)
+                            system_prompt = get_system_prompt(language, mode)
+                            
+                            analysis_response, _ = await ai.get_response(
+                                user_message=analysis_prompt,
+                                system_prompt=system_prompt,
+                                history=[],
+                                language=language
+                            )
+                            
+                            await status_msg.edit_text(f"📊 **АНАЛИЗ АККАУНТА @{smm.my_username}**\n\n{analysis_response}")
+                            response = ""  # Пустой, т.к. уже отправили
+                        else:
+                            await status_msg.edit_text(f"⚠️ Не удалось прочитать посты: {result.get('error', 'Неизвестная ошибка')}")
+                            response = ""
+                    else:
+                        # Обычный ответ для других запросов о соцсетях
+                        response = f"✅ Принято! У меня есть доступ к аккаунту {smm.my_username}. Приступаю к выполнению задачи.\n\n(Анализирую данные...)"
                 else:
                     response = "⚠️ Я готов приступить, но нужно проверить соединение. Напишите /social_status"
                 break
