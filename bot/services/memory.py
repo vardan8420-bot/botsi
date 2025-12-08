@@ -46,11 +46,18 @@ class MemoryService:
                 )
                 
                 print("✅ Долгосрочная память инициализирована (ChromaDB + OpenAI)")
+            except ImportError as e:
+                # ChromaDB не установлен - это нормально, память просто не будет работать
+                print("ℹ️ ChromaDB не установлен - долгосрочная память отключена (опциональная функция)")
+                print("   Для включения: pip install chromadb>=0.4.22")
+                self.is_available = False
+                self.collection = None
             except Exception as e:
                 print(f"⚠️ Ошибка инициализации памяти: {e}")
                 self.is_available = False
+                self.collection = None
         else:
-            print("⚠️ Память недоступна - нужен OPENAI_API_KEY")
+            print("ℹ️ Память недоступна - нужен OPENAI_API_KEY")
     
     async def remember(
         self,
@@ -76,6 +83,12 @@ class MemoryService:
             }
         
         try:
+            if not self.collection:
+                return {
+                    'success': False,
+                    'error': 'Память недоступна (ChromaDB не установлен)'
+                }
+            
             # Создаем уникальный ID
             memory_id = f"{user_id}_{category}_{len(fact)}"
             
@@ -126,6 +139,13 @@ class MemoryService:
             }
         
         try:
+            if not self.collection:
+                return {
+                    'success': False,
+                    'error': 'Память недоступна (ChromaDB не установлен)',
+                    'memories': []
+                }
+            
             # Фильтр по пользователю
             where_filter = {"user_id": str(user_id)}
             
@@ -191,6 +211,12 @@ class MemoryService:
             }
         
         try:
+            if not self.collection:
+                return {
+                    'success': False,
+                    'error': 'Память недоступна (ChromaDB не установлен)'
+                }
+            
             where_filter = {"user_id": str(user_id)}
             
             if category:
