@@ -333,9 +333,9 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                             # Получаем анализ от GPT
                             ai = context.bot_data.get('ai')
                             config = context.bot_data.get('config')
-                            language = db.get_user(update.effective_user.id).language if db else 'ru'
+                            user_obj = db.get_user(update.effective_user.id) if db else None
+                            language = user_obj.language if user_obj else 'ru'
                             
-                            from bot.prompts import get_system_prompt, ModeDetector
                             mode = ModeDetector.detect_mode(analysis_prompt, language)
                             system_prompt = get_system_prompt(language, mode)
                             
