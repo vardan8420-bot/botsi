@@ -268,17 +268,50 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     ]
     
     response_lower = response.lower()
+    user_msg_lower = user_message.lower()
+    
+    # Проверяем, о чем речь в сообщении пользователя
+    is_about_sites = any(word in user_msg_lower for word in ['сайт', 'site', 'веб', 'web', 'url', 'http', 'аудит сайт', 'проверь сайт'])
+    is_about_social = any(word in user_msg_lower for word in ['инста', 'instagram', 'facebook', 'соцсет', 'пост', 'публикац'])
+    
     for phrase in forbidden_phrases:
-        if "нет возможности" in response_lower or "нет доступа" in response_lower:
+        if "нет возможности" in response_lower or "нет доступа" in response_lower or "не могу напрямую" in response_lower:
             print(f"🚫 Цензор заблокировал ответ: {response[:50]}...")
             
-            # Вместо нытья - проверяем реальный статус и отвечаем (БЕЗ MARKDOWN, чтобы не ломалось об _ в никах)
-            smm = context.bot_data.get('social_media_real')
-            if smm and smm.instagram_available:
-                response = f"✅ Принято! У меня есть доступ к аккаунту {smm.my_username}. Приступаю к выполнению задачи.\n\n(Анализирую данные...)"
+            # Если речь о сайтах - используем site_auditor
+            if is_about_sites:
+                site_auditor = context.bot_data.get('site_auditor')
+                if site_auditor:
+                    # Пытаемся найти URL в сообщении
+                    import re
+                    url_match = re.search(r'https?://[^\s]+', user_message)
+                    if url_match:
+                        url = url_match.group(0)
+                        await update.message.reply_text(f"🕵️‍♂️ Анализирую сайт {url}...")
+                        result = await site_auditor.audit_page(url)
+                        if result.get('success'):
+                            response = f"📋 **ОТЧЕТ ПО АУДИТУ:**\n\n{result['report']}"
+                        else:
+                            response = f"❌ Ошибка аудита: {result.get('error', 'Неизвестная ошибка')}"
+                    else:
+                        response = "✅ Я могу анализировать сайты! Отправьте мне URL или используйте команду /audit_site <url>"
+                else:
+                    response = "✅ Я могу анализировать сайты! Используйте команду /audit_site <url>"
+                break
+            
+            # Если речь о соцсетях - проверяем social_media_real
+            elif is_about_social:
+                smm = context.bot_data.get('social_media_real')
+                if smm and smm.instagram_available:
+                    response = f"✅ Принято! У меня есть доступ к аккаунту {smm.my_username}. Приступаю к выполнению задачи.\n\n(Анализирую данные...)"
+                else:
+                    response = "⚠️ Я готов приступить, но нужно проверить соединение. Напишите /social_status"
+                break
+            
+            # Иначе - общий ответ
             else:
-                response = "⚠️ Я готов приступить, но нужно проверить соединение. Напишите /social_status"
-            break
+                response = "✅ Я готов помочь! Уточните, что именно нужно сделать."
+                break
             
     # === AGENTIC ACTION EXECUTOR (Выполнение тегов) ===
     # Ищем теги вида [[ACTION: name | ARGS: "value"]]
