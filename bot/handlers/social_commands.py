@@ -8,7 +8,7 @@ import os
 
 async def post_instagram_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /post_instagram - опубликовать в Instagram"""
-    social = context.bot_data.get('social_media') # FIXED key name
+    social = context.bot_data.get('social_media_real')
     
     if not social or not social.instagram_available:
         await update.message.reply_text(
@@ -57,7 +57,7 @@ async def post_instagram_command(update: Update, context: ContextTypes.DEFAULT_T
 
 async def post_facebook_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /post_facebook - опубликовать в Facebook"""
-    social = context.bot_data.get('social_media')
+    social = context.bot_data.get('social_media_real')
     
     if not social or not social.facebook_available:
         await update.message.reply_text(
@@ -90,7 +90,7 @@ async def post_facebook_command(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def social_status_real_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /social_status - статус соцсетей"""
-    social = context.bot_data.get('social_media')
+    social = context.bot_data.get('social_media_real')
     
     if not social:
         await update.message.reply_text("⚠️ Менеджер соцсетей недоступен")
@@ -121,7 +121,7 @@ async def social_status_real_command(update: Update, context: ContextTypes.DEFAU
 
 async def audit_instagram_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Прямой аудит инстаграма (без GPT)"""
-    smm = context.bot_data.get('social_media')
+    smm = context.bot_data.get('social_media_real')
     
     status_msg = await update.message.reply_text("🔍 Проверяю доступ...")
     

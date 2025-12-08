@@ -67,6 +67,12 @@ from bot.handlers.code_commands import (
     generate_tests_command,
     github_status_command
 )
+from bot.handlers.github_commands import (
+    github_repos_command,
+    github_create_repo_command,
+    github_create_file_command,
+    github_info_command
+)
 from bot.handlers.messages import (
     handle_text_message,
     handle_voice_message
@@ -80,7 +86,10 @@ from bot.handlers.advanced_commands import (
     forget_command,
     image_command
 )
-from bot.handlers.github_commands import (
+from bot.handlers.smm_commands import (
+    smm_plan_command,
+    target_audience_command,
+    sales_funnel_command,
     copywriting_command,
     hashtags_command,
     competitor_command
@@ -94,6 +103,11 @@ from bot.handlers.social_scheduler import (
     scheduled_posts_worker,
     list_posts_command,
     post_now_command,
+)
+from bot.handlers.social_commands import (
+    post_instagram_command,
+    post_facebook_command,
+    social_status_real_command
 )
 from bot.handlers.autonomy_commands import (
     autonomy_on_command,

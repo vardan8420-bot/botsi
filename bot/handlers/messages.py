@@ -83,7 +83,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     # 1.1 Вопрос о доступе ("есть доступ?", "ты можешь?") - ПЕРЕХВАТЧИК
     if ("доступ" in low_msg or "можешь" in low_msg or "умеешь" in low_msg or "есть" in low_msg) and ("инста" in low_msg or "instagram" in low_msg) and "?" in user_message:
-         smm = context.bot_data.get('social_media')
+         smm = context.bot_data.get('social_media_real')
          # Если сервис есть, но подключение false - скажем правду, но с оптимизмом
          if smm:
              if smm.instagram_available:
@@ -154,7 +154,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     # 5. Анализ своего Инстаграма (Smart Analysis)
     if ("анализ" in low_msg or "статистика" in low_msg or "посты" in low_msg or "аккаунт" in low_msg) and ("инста" in low_msg or "instagram" in low_msg) and ("мой" in low_msg or "наш" in low_msg or "этот" in low_msg):
-        smm = context.bot_data.get('social_media')
+        smm = context.bot_data.get('social_media_real')
         if smm and smm.instagram_available:
             status_msg = await update.message.reply_text(f"📊 Сканирую последние 5 постов аккаунта @{smm.my_username}...")
             
@@ -196,7 +196,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             new_bio = user_message.split(" на ", 1)[1].strip()
             
         if new_bio:
-            smm = context.bot_data.get('social_media')
+            smm = context.bot_data.get('social_media_real')
             if smm and smm.instagram_available:
                 status_msg = await update.message.reply_text(f"⚙️ Приступаю к настройке профиля...\nНовое описание: \n'{new_bio}'")
                 
@@ -220,7 +220,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     mode = ModeDetector.detect_mode(user_message, language)
     
     # Загружаем системный промпт с учетом режима и контекста соцсетей
-    smm = context.bot_data.get('social_media')
+    smm = context.bot_data.get('social_media_real')
     insta_username = None
     if smm and hasattr(smm, 'my_username') and smm.my_username != "Unknown":
         insta_username = smm.my_username
@@ -273,7 +273,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             print(f"🚫 Цензор заблокировал ответ: {response[:50]}...")
             
             # Вместо нытья - проверяем реальный статус и отвечаем (БЕЗ MARKDOWN, чтобы не ломалось об _ в никах)
-            smm = context.bot_data.get('social_media')
+            smm = context.bot_data.get('social_media_real')
             if smm and smm.instagram_available:
                 response = f"✅ Принято! У меня есть доступ к аккаунту {smm.my_username}. Приступаю к выполнению задачи.\n\n(Анализирую данные...)"
             else:
@@ -297,7 +297,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
              # Отправляем БЕЗ Markdown, чтобы избежать Can't parse entities
              await update.message.reply_text(clean_response)
         
-        smm = context.bot_data.get('social_media')
+        smm = context.bot_data.get('social_media_real')
         
         # 1. Обновление Био
         if action_name == 'update_bio' and action_args:
